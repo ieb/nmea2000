@@ -9,6 +9,12 @@
 #include <NMEA2000.h>
 #include <ActisenseReader.h>
 #include <N2kMessages.h>
+#include "polar.h"
+#include "pogo1250.h"
+#include "events.h"
+#include "batteryMonitor.h"
+#include "enviroMonitor.h"
+
 
 // ---  Example of using PROGMEM to hold Product ID.  However, doing this will prevent any updating of
 //      these details outside of recompiling the program.
@@ -38,9 +44,58 @@ const tNMEA2000::tProgmemConfigurationInformation MonitorConfigurationInformatio
 tNMEA2000_due NMEA2000;
 tActisenseReader ActisenseReader;
 
+Adafruit_BMP085_Unified       bmp   = Adafruit_BMP085_Unified(18001);
+bool bmp_available;
+
+TimedEventQueue timedEventQueue = TimedEventQueue();
+EventHandler sendN2kBatteryHandler = EventHandler(&SendN2kBattery);
+EventHandler sendN2KEnviroHandler = EventHandler(&SendN2KEnviro);
+EventHandler sendN2KpolarHandler = EventHandler(&SendN2KPolar);
+
+
+EnviroMonitor enviroMonitor = EnviroMonitor();
+// initialise the polar chart for the boat, defined in pogo1250.h
+Polar_Performance polarPerformance = Polar_Performance(POGO1250_NAME,
+        POGO1250_N_TWA, 
+        POGO1250_N_TWS,
+        pogo1250Data_twa,
+        pogo1250Data_tws,
+        pogo1250Data_bsp);
+Statistic awaStatistic = Statistic();
+Statistic awsStatistic = Statistic();
+Statistic bspStatistic = Statistic();
+PolarMonitor polarMonitor = PolarMonitor(&polarPerformance, 
+        &awaStatistic, 
+        &awsStatistic, 
+        &bspStatistic);
+
+#define NBATTERIES 2
+
+BatteryMonitor batteryBank[NBATTERIES] = {
+  BatteryMonitor(1, 100),
+  BatteryMonitor(2, 300)
+};
+const unsigned long TransmitMessages[] PROGMEM={
+  EnviroMonitor_MESSAGES,
+  BatteryMonitor_MESSAGES,
+  0};
+
 void setup() {
   SerialUSB.begin(115200);
   Serial.begin(115200);
+
+  enviroMonitor.begin();
+  for (int i = 0; i < NBATTERIES; i++ ) {
+    batteryBank[i].begin();
+  }
+
+  timedEventQueue.addHandler(&sendN2kBatteryHandler);
+  timedEventQueue.addHandler(&sendN2KEnviroHandler);
+  timedEventQueue.addHandler(&sendN2KpolarHandler);
+
+
+  
+  
   NMEA2000.SetProductInformation(&MonitorProductInformation );
   NMEA2000.SetProgmemConfigurationInformation(&MonitorConfigurationInformation );
   NMEA2000.SetDeviceInformation(1,      // Unique number. Use e.g. Serial number.
@@ -49,10 +104,17 @@ void setup() {
                                 2046    // Just choosen free from code list on http://www.nmea.org/Assets/20121020%20nmea%202000%20registration%20list.pdf                               
                                );
   NMEA2000.SetForwardStream(&Serial);  // PC output on due programming port
-  NMEA2000.SetMode(tNMEA2000::N2km_ListenAndSend);
-//  NMEA2000.SetForwardType(tNMEA2000::fwdt_Text); // Show in clear text
+  // make it listen and be a node, then enable forwarding to make it forward to actisense.
+  NMEA2000.SetMode(tNMEA2000::N2km_ListenAndNode);
+  NMEA2000.EnableForward(true);
+  NMEA2000.SetForwardSystemMessages(true);
+  NMEA2000.SetForwardOwnMessages(true);
+  
+  NMEA2000.SetForwardType(tNMEA2000::fwdt_Text); // Show in clear text
+  
+  NMEA2000.SetMsgHandler(&HandleNMEAMessage);
   NMEA2000.Open();
-
+  
 
   
 
@@ -67,117 +129,92 @@ void HandleStreamN2kMsg(const tN2kMsg &N2kMsg) {
   NMEA2000.SendMsg(N2kMsg,-1);
 }
 
+void HandleNMEAMessage(const tN2kMsg &N2kMsg) {
+  // for the PGNs we are interested in update the statistics.
+  switch(N2kMsg.PGN) {
+    case 130306L: // WindSpeed
+      unsigned char SID;
+      double WindSpeed;
+      double WindAngle;
+      tN2kWindReference &WindReference
+      ParseN2kWindSpeed(N2kMsg, &SID, &WindSpeed, &WindAngle, &WindReference);
+      if (WindReference == N2kWind_Apprent ) {
+        // change at some point
+        if ( WindSpeed != N2kDoubleNA ) {
+          awsStatistic.update(msToKnots(WindSpeed), tnow);          
+        }
+        if ( WindAngle != N2kDoubleNA ) {
+          awaStatistic.update(RadToDeg(WindAngle), tnow);
+        }
+      }
+    break;
+    case 128259L: // Boat speed.
+      unsigned char SID;
+      double WaterRefereced; 
+      double GroundReferenced; 
+      tN2kSpeedWaterReferenceType SWRT;
+      ParseN2kBoatSpeed(N2kMsg, &SID, &WaterRefereced, &GroundReferenced,  &SWRT);
+      if ( WaterRefereced != N2kDoubleNA ) {
+        bspStatistic.update(msToKnots(WaterRefereced), tnow);
+      }
+    break;
+  }
+}
+
 void loop() {
   NMEA2000.ParseMessages();
   ActisenseReader.ParseMessages();
-  SendN2kBattery();
+  timedEventQueue.tick(millis());
 }
 
-#define BatUpdatePeriod 1000
+#define BatteryUpdatePeriod 1000
+#define EnviroUpdatePeriod 10000
+#define PolarUpdatePeriod 1000
 
-
-void SendN2kBattery() {
-  static unsigned long TempUpdated=millis();
-  tN2kMsg N2kMsg;
-
-  if ( TempUpdated+BatUpdatePeriod<millis() ) {
-    TempUpdated=millis();
-    /*****************************************************************************
-    // Battery Status
-    // Input:
-    //  - BatteryInstance       BatteryInstance.
-    //  - BatteryVoltage        Battery voltage in V
-    //  - BatteryCurrent        Current in A 
-    //  - BatteryTemperature    Battery temperature in °K. Use function CToKelvin, if you want to use °C.
-    //  - SID                   Sequence ID.
-    void SetN2kPGN127508(tN2kMsg &N2kMsg, unsigned char BatteryInstance, double BatteryVoltage, double BatteryCurrent=N2kDoubleNA,
-                         double BatteryTemperature=N2kDoubleNA, unsigned char SID=1);
-    
-    inline void SetN2kDCBatStatus(tN2kMsg &N2kMsg, unsigned char BatteryInstance, double BatteryVoltage, double BatteryCurrent=N2kDoubleNA,
-                         double BatteryTemperature=N2kDoubleNA, unsigned char SID=1) {
-    */
-                     
-    SetN2kDCBatStatus(N2kMsg,1,1.87,5.12,35.12,1);
-    NMEA2000.SendMsg(N2kMsg);
-    /*****************************************************************************
-    // DC Detailed Status
-    // Input:
-    //  - SID                   Sequence ID. If your device is e.g. boat speed and heading at same time, you can set same SID for different messages
-    //                          to indicate that they are measured at same time.
-    //  - DCInstance            DC instance.  
-    //  - DCType                Defines type of DC source. See definition of tN2kDCType
-    //  - StateOfCharge         % of charge
-    //  - StateOfHealth         % of heath
-    //  - TimeRemaining         Time remaining in minutes
-    //  - RippleVoltage         DC output voltage ripple in V
-    void SetN2kPGN127506(tN2kMsg &N2kMsg, unsigned char SID, unsigned char DCInstance, tN2kDCType DCType,
-                         unsigned char StateOfCharge, unsigned char StateOfHealth, double TimeRemaining, double RippleVoltage);
-    
-    inline void SetN2kDCStatus(tN2kMsg &N2kMsg, unsigned char SID, unsigned char DCInstance, tN2kDCType DCType,
-                         unsigned char StateOfCharge, unsigned char StateOfHealth, double TimeRemaining, double RippleVoltage) {
-    */
-    SetN2kDCStatus(N2kMsg,1,1,N2kDCt_Battery,56,92,38500,0.012);
-    NMEA2000.SendMsg(N2kMsg);
-    /*****************************************************************************
-    // Battery Configuration Status
-    // Note this has not yet confirmed to be right. Specially Peukert Exponent can have in
-    // this configuration values from 1 to 1.504. And I expect on code that I have to send
-    // value PeukertExponent-1 to the bus.
-    // Input:
-    //  - BatteryInstance       BatteryInstance.
-    //  - BatType               Type of battery. See definition of tN2kBatType
-    //  - SupportsEqual         Supports equalization. See definition of tN2kBatEqSupport
-    //  - BatNominalVoltage     Battery nominal voltage. See definition of tN2kBatNomVolt
-    //  - BatChemistry          Battery See definition of tN2kBatChem
-    //  - BatCapacity           Battery capacity in Coulombs. Use AhToCoulombs, if you have your value in Ah.
-    //  - BatTemperatureCoeff   Battery temperature coefficient in %
-    //  - PeukertExponent       Peukert Exponent
-    //  - ChargeEfficiencyFactor Charge efficiency factor
-    void SetN2kPGN127513(tN2kMsg &N2kMsg, unsigned char BatInstance, tN2kBatType BatType, tN2kBatEqSupport SupportsEqual,
-                         tN2kBatNomVolt BatNominalVoltage, tN2kBatChem BatChemistry, double BatCapacity, int8_t BatTemperatureCoefficient,
-            double PeukertExponent, int8_t ChargeEfficiencyFactor);
-    
-    inline void SetN2kBatConf(tN2kMsg &N2kMsg, unsigned char BatInstance, tN2kBatType BatType, tN2kBatEqSupport SupportsEqual,
-                         tN2kBatNomVolt BatNominalVoltage, tN2kBatChem BatChemistry, double BatCapacity, int8_t BatTemperatureCoefficient,
-            double PeukertExponent, int8_t ChargeEfficiencyFactor) {
-    */
-    SetN2kBatConf(N2kMsg,1,N2kDCbt_Gel,N2kDCES_Yes,N2kDCbnv_12v,N2kDCbc_LeadAcid,AhToCoulomb(420),53,1.251,75);
-    NMEA2000.SendMsg(N2kMsg);
-    // Serial.print(millis()); Serial.println(", Battery send ready");
-  }
+unsigned long SendN2kBattery(unsigned long now) {
+  static uint8_t ncalls = 0;
+  ncalls = (ncalls+1)%256;
+    tN2kMsg N2kMsg;
+    for (int i = 0; i < NBATTERIES; i++ ) {
+      batteryBank[i].read();
+      batteryBank[i].fillStatusMessage(N2kMsg);
+       Serial.println("Sending Voltage Status");
+       NMEA2000.SendMsg(N2kMsg);
+      if ( ncalls%16 == 0 ) {
+        batteryBank[i].fillChargeStatusMessage(N2kMsg);
+        Serial.println("Sending Charge Status");
+        NMEA2000.SendMsg(N2kMsg);
+      }
+      if ( ncalls%30 == 0 ) {
+        batteryBank[i].fillBatteryConfigurationMessage(N2kMsg);
+        Serial.println("Sending Config Status");
+        NMEA2000.SendMsg(N2kMsg);        
+      }
+    }
+    return millis() + BatteryUpdatePeriod;
 }
 
-void SendN2KEnviro() {
-  static unsigned long TempUpdated=millis();
-  tN2kMsg N2kMsg;
-
-  if ( TempUpdated+BatUpdatePeriod<millis() ) {
-    TempUpdated=millis();
-
-    //*****************************************************************************
-    // Environmental parameters
-    // Note that in PGN 130311 TempInstance is as TempSource in PGN 130312. I do not know why this
-    // renaming is confusing.
-    // Pressure has to be in pascal. Use function mBarToPascal, if you like to use mBar
-    // Input:
-    //  - SID                   Sequence ID. 
-    //  - TempInstance          see tN2kTempSource
-    //  - Temperature           Temperature in °K. Use function CToKelvin, if you want to use °C.
-    //  - HumidityInstance      see tN2kHumiditySource.
-    //  - Humidity              Humidity in %
-    //  - AtmosphericPressure   Atmospheric pressure in Pascals. Use function mBarToPascal, if you like to use mBar
-    // Output:
-    //  - N2kMsg                NMEA2000 message ready to be send.
-    void SetN2kPGN130311(tN2kMsg &N2kMsg, unsigned char SID, tN2kTempSource TempInstance, double Temperature,
-                         tN2kHumiditySource HumidityInstance=N2khs_Undef, double Humidity=N2kDoubleNA, double AtmosphericPressure=N2kDoubleNA);
-    
-    inline void SetN2kEnvironmentalParameters(tN2kMsg &N2kMsg, unsigned char SID, tN2kTempSource TempInstance, double Temperature,
-                         tN2kHumiditySource HumidityInstance=N2khs_Undef, double Humidity=N2kDoubleNA, double AtmosphericPressure=N2kDoubleNA) {
-                          
-    */       
-    SetN2kEnvironmentalParameters(N2kMsg,1,CToKelvin(21.2),1,68,mBarToPascal(998));
+unsigned long  SendN2KEnviro(unsigned long now) {
+  if(enviroMonitor.read()) {
+    tN2kMsg N2kMsg;
+    enviroMonitor.fillStatusMessage(N2kMsg);
+    Serial.println("Sending Enviro Status");
     NMEA2000.SendMsg(N2kMsg);
   }
+  return millis() + EnviroUpdatePeriod;
+}
+
+
+unsigned long SendN2KPolar(unsigned long now) {
+  polarMonitor.read(now);
+  tN2kMsg N2kMsg;
+  polarMonitor.fillUsingEnginDynamicMessage(N2kMsg);
+  NMEA2000.SendMsg(N2kMsg);
+  polarMonitor.fillUsingEnginRapidMessage(N2kMsg);
+  NMEA2000.SendMsg(N2kMsg);
+  polarMonitor.fillUsingPolarPerformanceMessage(N2kMsg);
+  NMEA2000.SendMsg(N2kMsg);
+  return millis() + PolarUpdatePeriod;  
 }
 
 
