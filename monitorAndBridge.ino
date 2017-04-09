@@ -131,31 +131,36 @@ void HandleStreamN2kMsg(const tN2kMsg &N2kMsg) {
 
 void HandleNMEAMessage(const tN2kMsg &N2kMsg) {
   // for the PGNs we are interested in update the statistics.
+  unsigned long tnow = millis();
   switch(N2kMsg.PGN) {
     case 130306L: // WindSpeed
-      unsigned char SID;
-      double WindSpeed;
-      double WindAngle;
-      tN2kWindReference &WindReference
-      ParseN2kWindSpeed(N2kMsg, &SID, &WindSpeed, &WindAngle, &WindReference);
-      if (WindReference == N2kWind_Apprent ) {
-        // change at some point
-        if ( WindSpeed != N2kDoubleNA ) {
-          awsStatistic.update(msToKnots(WindSpeed), tnow);          
-        }
-        if ( WindAngle != N2kDoubleNA ) {
-          awaStatistic.update(RadToDeg(WindAngle), tnow);
+      {
+        unsigned char SID;
+        double WindSpeed;
+        double WindAngle;
+        tN2kWindReference WindReference;
+        ParseN2kWindSpeed(N2kMsg, SID, WindSpeed, WindAngle, WindReference);
+        if (WindReference == N2kWind_Apprent ) {
+          // change at some point
+          if ( WindSpeed != N2kDoubleNA ) {
+            awsStatistic.update(msToKnots(WindSpeed), tnow);          
+          }
+          if ( WindAngle != N2kDoubleNA ) {
+            awaStatistic.update(RadToDeg(WindAngle), tnow);
+          }
         }
       }
     break;
     case 128259L: // Boat speed.
-      unsigned char SID;
-      double WaterRefereced; 
-      double GroundReferenced; 
-      tN2kSpeedWaterReferenceType SWRT;
-      ParseN2kBoatSpeed(N2kMsg, &SID, &WaterRefereced, &GroundReferenced,  &SWRT);
-      if ( WaterRefereced != N2kDoubleNA ) {
-        bspStatistic.update(msToKnots(WaterRefereced), tnow);
+      {
+        unsigned char SID;
+        double WaterRefereced; 
+        double GroundReferenced; 
+        tN2kSpeedWaterReferenceType SWRT;
+        ParseN2kBoatSpeed(N2kMsg, SID, WaterRefereced, GroundReferenced,  SWRT);
+        if ( WaterRefereced != N2kDoubleNA ) {
+          bspStatistic.update(msToKnots(WaterRefereced), tnow);
+        }
       }
     break;
   }

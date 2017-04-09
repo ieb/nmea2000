@@ -23,7 +23,7 @@ The Marine instrument installation is a Raymarine SeatalkNG installation with a 
 As well as emitting CAM messages onto the NMEA2000 bus the Arduino Due runs code to implement sufficient of the Actisense protocol to feed SignalK running on a Pi Zero W. Installation of that part is listed below. Most of this is achieved with confgiguration and no additional code.
 
 
-# Pi Zero W intallation - Rough notes.
+# Pi Zero W installation - Rough notes.
 
 Installation on a Pi Zero W for pushing stats from NMEA2000 -> Arduino Due -> SkignalK -> InfluxDB -> Grafana
 
