@@ -14,10 +14,33 @@
 
 #define BatteryMonitor_MESSAGES 127508L, 127506L, 127513L
 
+// Arduino ADC is 0.0049V / unit.
+
+
+// 185mV/A with OA at 2.5V  (x * 0.0049F/0.185F) == 
+// Ov would be -2.5/0.185A, although the sensor stops at -5A.
+#define ACS712_5BA_ADC_TO_AMPS 0.02648648648F
+#define ACS712_5BA_ZEROA_OFFSET 13.5135135135
+
+// 66mV/A with OA at 2.5V  (x * 0.0049F/0.066F) == 
+// Ov would be -2.5/0.066 A, although the sensor stops at -30A.
+#define ACS712_30BA_ADC_TO_AMPS 0.07424242424F
+#define ACS712_30BA_ZEROA_OFFSET 37.8787878788F
+
+// 20mV/A with OA at 2.5V  (x * 0.0049F/0.020F) == 
+// Ov would be -2.5/0.020 A, although the sensor stops at -100A.
+#define ACS758_100BA_ADC_TO_AMPS 0.245F
+#define ACS758_100BA_ZEROA_OFFSET 125.0F
+
+#define VOLTAGE_DIVIDER_3TO1 0.0147F
+#define TEMP_5V100C 0.098F
+#define TEMP_5V100C_OFFSET 0.0F
+
+
+
 
 class BatteryMonitor {
 public:
-    
 
     BatteryMonitor(int dcInstance, int batCapacity=100,
             int voltageADCPin = 0,

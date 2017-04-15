@@ -71,9 +71,39 @@ PolarMonitor polarMonitor = PolarMonitor(&polarPerformance,
 
 #define NBATTERIES 2
 
+// 6 ADC pins are needed to fully monitor 2 batteries including temp.
+#define BATTERY_1_ADCV 1
+#define BATTERY_1_ADCA 2
+#define BATTERY_1_ADCT 3
+#define BATTERY_2_ADCV 4
+#define BATTERY_2_ADCA 5
+#define BATTERY_2_ADCT 6
+
+
+/**
+ * BatteryMonitor(int dcInstance, int batCapacity=100,
+            int voltageADCPin = 0,
+            double convertADCToVolts = 0.0147F, // 3:1 resistor divider, 5V = 15V
+            double zeroVOffset = 0.0F, // 3:1 resistor divider, 5V = 15V
+            int currentADCPin = 0,
+            double convertADCToAmps = 0.196F, // 0V = -100A, 2.5V = 0A, 5V = 100A  
+            double zeroAOffset = 100.0F, // 5V = 100A,  
+            int temperatureADCPin = 0,
+            double convertADCToC = 0.098F, // 0V = 0C, 5V = 100C  
+            double zeroCOffset = 0.0F, // 
+            tN2kBatNomVolt batNominalVoltage=N2kDCbnv_12v, 
+            tN2kBatChem batChemistry=N2kDCbc_LeadAcid,
+            tN2kBatType  batType=N2kDCbt_Flooded ) {
+  */
 BatteryMonitor batteryBank[NBATTERIES] = {
-  BatteryMonitor(1, 100),
-  BatteryMonitor(2, 300)
+  BatteryMonitor(1, 100, BATTERY_1_ADCV, VOLTAGE_DIVIDER_3TO1, 0.0F, 
+                         BATTERY_1_ADCA, ACS758_100BA_ADC_TO_AMPS, ACS758_100BA_ZEROA_OFFSET, 
+                         BATTERY_1_ADCT, TEMP_5V100C, TEMP_5V100C_OFFSET, 
+                         N2kDCbnv_12v, N2kDCbc_LeadAcid,N2kDCbt_Flooded ),
+  BatteryMonitor(2, 300, BATTERY_2_ADCV, VOLTAGE_DIVIDER_3TO1, 0.0F, 
+                         BATTERY_2_ADCA, ACS758_100BA_ADC_TO_AMPS, ACS758_100BA_ZEROA_OFFSET, 
+                         BATTERY_2_ADCT, TEMP_5V100C, TEMP_5V100C_OFFSET, 
+                         N2kDCbnv_12v, N2kDCbc_LeadAcid,N2kDCbt_Flooded )
 };
 const unsigned long TransmitMessages[] PROGMEM={
   EnviroMonitor_MESSAGES,
@@ -90,7 +120,7 @@ void setup() {
   }
 
   timedEventQueue.addHandler(&sendN2kBatteryHandler);
-  timedEventQueue.addHandler(&sendN2KEnviroHandler);
+  //timedEventQueue.addHandler(&sendN2KEnviroHandler);
   timedEventQueue.addHandler(&sendN2KpolarHandler);
 
 
@@ -105,6 +135,8 @@ void setup() {
                                );
   NMEA2000.SetForwardStream(&Serial);  // PC output on due programming port
   // make it listen and be a node, then enable forwarding to make it forward to actisense.
+  // N2km_ListenOnly
+  // NMEA2000.SetMode(tNMEA2000::N2km_ListenAndSend);
   NMEA2000.SetMode(tNMEA2000::N2km_ListenAndNode);
   NMEA2000.EnableForward(true);
   NMEA2000.SetForwardSystemMessages(true);

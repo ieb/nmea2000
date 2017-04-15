@@ -322,7 +322,7 @@ public:
 
 
     void fillUsingEnginDynamicMessage(tN2kMsg &N2kMsg) {
-        SetN2kEngineDynamicParam(N2kMsg, 10, 
+        SetN2kEngineDynamicParam(N2kMsg, 1, 
             N2kDoubleNA, // double EngineOilPress, 
             N2kDoubleNA, // double EngineOilTemp, 
             N2kDoubleNA, // double EngineCoolantTemp, 
@@ -344,7 +344,7 @@ public:
 
     void fillUsingEnginRapidMessage(tN2kMsg &N2kMsg) {
         SetN2kEngineParamRapid(N2kMsg, 
-            10, // unsigned char EngineInstance, 
+            1, // unsigned char EngineInstance, 
             performance // double EngineSpeed,
             ); 
             // double EngineBoostPressure=N2kDoubleNA, int8_t EngineTiltTrim=N2kInt8NA) {
