@@ -25,11 +25,18 @@ public:
     EnviroMonitor() {
     }
     void begin() {
+        Serial.print("Checking Enviro sensor ");
         if (!enviroSesorEnabled) {
             if(enviroSensor.begin()) {
                 enviroSesorEnabled = true;
             }
-        }        
+        }    
+        if ( enviroSesorEnabled) {
+           Serial.println("Found");    
+        } else {
+           Serial.println("Not Found");
+
+        }
     }
     bool read() {
       if ( enviroSesorEnabled ) {
@@ -37,14 +44,14 @@ public:
         enviroSensor.getEvent(&event);
         enviroSensor.getTemperature(&temperature);
         pressure = event.pressure;
-        _envSID = (_envSID+1)%256;
+        _envSID++;
         return true;
       }
       return false;
     }
     void fillStatusMessage(tN2kMsg &N2kMsg) {
       if ( enviroSesorEnabled ) {
-          SetN2kPGN130310(N2kMsg,
+          SetN2kOutsideEnvironmentalParameters(N2kMsg,
             _envSID, 
             N2kDoubleNA, 
             CToKelvin(temperature), 

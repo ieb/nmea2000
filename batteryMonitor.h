@@ -81,10 +81,17 @@ public:
         _temperatureADCPin = temperatureADCPin;
         _convertADCToC = convertADCToC;
         _zeroCOffset = zeroCOffset;
+        useFake = false;
 
     }
     void begin() {
         // perform any init required.
+    }
+    void setFake(double voltage, double current, double temp) {
+      fakeVoltage = voltage;
+      fakeCurrent = current;
+      fakeTemperature = temp;
+      useFake = true;
     }
     void read() {
 #ifdef DEMOMODE
@@ -113,14 +120,20 @@ public:
             _temperature = 20.0F;
         }
 #endif
-        _batSID = (_batSID+1)%256;
+        if (useFake) {
+          _voltage = fakeVoltage;
+          _current = fakeCurrent;
+          _temperature = fakeTemperature;
+          useFake = false;
+        }
+        _batSID = _batSID+1;
     }
     void fillStatusMessage(tN2kMsg &N2kMsg) {
         SetN2kDCBatStatus(N2kMsg,
             _dcInstance,
             _voltage,
             _current,
-            _temperature,
+            CToKelvin(_temperature),
             _batSID);
     }
     void fillChargeStatusMessage(tN2kMsg &N2kMsg) {
@@ -173,6 +186,13 @@ private:
     int _temperatureADCPin;
     double _convertADCToC; // 0V = 0C, 5V = 100C  
     double _zeroCOffset; // 
+
+    
+    double fakeVoltage;
+    double fakeCurrent;
+    double fakeTemperature;
+    bool useFake;
+    
 };
 
 

@@ -280,6 +280,7 @@ public:
         _bspStatistic = bspStatistic;
         _polarPerformance = polarPerformance;
         periods = windowS;
+        sid = 0;
     }
 
 
@@ -316,42 +317,21 @@ public:
         stdevTWA = stdevAWA;
         targetBSP = _polarPerformance->getBoatSpeed(meanTWS, meanTWA);
         performance = _polarPerformance->getBoatSpeedPerformance(meanTWS, meanTWA, meanBSP);
+        sid++;
     }
 
 
-
-
-    void fillUsingEnginDynamicMessage(tN2kMsg &N2kMsg) {
-        SetN2kEngineDynamicParam(N2kMsg, 1, 
-            N2kDoubleNA, // double EngineOilPress, 
-            N2kDoubleNA, // double EngineOilTemp, 
-            N2kDoubleNA, // double EngineCoolantTemp, 
-            N2kDoubleNA, // double AltenatorVoltage,
-            N2kDoubleNA, // double FuelRate, 
-            N2kDoubleNA, // double EngineHours, 
-            N2kDoubleNA, // double EngineCoolantPress=N2kDoubleNA, 
-            N2kDoubleNA, // double EngineFuelPress=N2kDoubleNA, 
-            (int8_t) performance, // int8_t EngineLoad=N2kInt8NA,
-            N2kInt8NA  // int8_t EngineTorque=N2kInt8NA, 
-            );
-            //           bool flagCheckEngine=false,       bool flagOverTemp=false,         bool flagLowOilPress=false,         bool flagLowOilLevel=false, 
-            //           bool flagLowFuelPress=false,      bool flagLowSystemVoltage=false, bool flagLowCoolantLevel=false,     bool flagWaterFlow=false, 
-            //           bool flagWaterInFuel=false,       bool flagChargeIndicator=false,  bool flagPreheatIndicator=false,    bool flagHighBoostPress=false, 
-            //           bool flagRevLimitExceeded=false,  bool flagEgrSystem=false,        bool flagTPS=false,                 bool flagEmergencyStopMode=false, 
-            //           bool flagWarning1=false,          bool flagWarning2=false,         bool flagPowerReduction=false,      bool flagMaintenanceNeeded=false, 
-            //           bool flagEngineCommError=false,   bool flagSubThrottle=false,      bool flagNeutralStartProtect=false, bool flagEngineShuttingDown=false
+    void fillPolarPerformance(tN2kMsg &N2kMsg) {      
+        // Representing polar performance
+        SetN2kFluidLevel(N2kMsg, 1, N2kft_LiveWell, performance, 250);
     }
 
-    void fillUsingEnginRapidMessage(tN2kMsg &N2kMsg) {
-        SetN2kEngineParamRapid(N2kMsg, 
-            1, // unsigned char EngineInstance, 
-            performance // double EngineSpeed,
-            ); 
-            // double EngineBoostPressure=N2kDoubleNA, int8_t EngineTiltTrim=N2kInt8NA) {
+    void fillTargetBoatSpeed(tN2kMsg &N2kMsg) {
+        // Representing Target boat speed. 
+        SetN2kTemperature(N2kMsg, sid, 1, N2kts_TheoreticalWindChillTemperature,
+                           CToKelvin(targetBSP));
     }
-    void fillUsingPolarPerformanceMessage(tN2kMsg &N2kMsg) {
-        // TODO, find a custom message PGN that can be used.
-    }
+
 
 
 private:
@@ -368,6 +348,7 @@ private:
     double meanAWA;
     double stdevAWA;
     int8_t periods;
+    uint8_t sid;
     Polar_Performance *_polarPerformance;
     Statistic *_twaStatistic;
     Statistic *_twsStatistic; 
