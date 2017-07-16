@@ -1,0 +1,11 @@
+{
+    "doc" : "Put this in /usr/local/src/signalk-server-node/plugin-config-data/sk-to-nmea0183.json  to enable nmea0183 on TCP 10110",
+  "enabled": true,
+  "configuration": {
+    "APB": false,
+    "MWV": false,
+    "RMC": false,
+    "PSILTBS": false,
+    "PSILCD1": false
+  }
+}

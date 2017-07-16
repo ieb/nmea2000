@@ -4,18 +4,66 @@
 //   Use this e.g. with NMEA Simulator (see. http://www.kave.fi/Apps/index.html) to send simulated data to the bus.
 // Also reads data from i2c and sends it to both the NMEA2000 network and the actisense network.
 
+#define TRACE(x)
+#define DEBUG(x)
+#define INFO(x)
+#define ERROR(x)
+
+
 #include <Arduino.h>
+#include "configuration.h"
+
+Stream *LogStream =  &SerialUSB;
+Stream *DataStream = &Serial;
+Configuration configuration = Configuration(LogStream);
+
+#define LOG(x) if (configuration.isLoggingOn()) { LogStream->print(F("LOG:")); LogStream->print(x); }
+#define LOGLN(x) if (configuration.isLoggingOn()) { LogStream->print(F("LOG:")); LogStream->println(x); }
+#define LOGC(x) if (configuration.isLoggingOn()) { LogStream->print(x); }
+#define LOGN(x) if (configuration.isLoggingOn()) { LogStream->println(x); }
+#define STATUS(x) if (configuration.isStatusOn()) { LogStream->print(x); }
+
+
+
 #include <N2kMsg.h>
 #include <NMEA2000.h>
 #include <ActisenseReader.h>
 #include <N2kMessages.h>
-#include "polar.h"
-#include "pogo1250.h"
-#include "events.h"
-#include "batteryMonitor.h"
-#include "enviroMonitor.h"
+#include <polar.h>
+#include <pogo1250.h>
+#include <events.h>
+#include <batteryMonitor.h>
+#include <boatMonitor.h>
+#include <waterMonitor.h>
+#include <multiSensor.h>
+#include <enviroMonitor.h>
 
-inline double knToms(double v) { return v*1852.0/3600.0; }
+#define DEMOMODE true
+
+#define NBATTERIES 2
+
+// Due has a total of 12 ADC pins before multiplexing becomes a requirement.
+// 6 ADC pins are needed to fully monitor 2 batteries including temp.
+#define BATTERY_1_ADCV 1
+#define BATTERY_1_ADCA 2
+#define BATTERY_1_ADCT 3
+#define BATTERY_2_ADCV 4
+#define BATTERY_2_ADCA 5
+#define BATTERY_2_ADCT 6
+// 2 PINS required for wind direction
+#define WIND_SIN_ADC 7
+#define WIND_COS_ADC 8
+// 1 PIN required for water temp
+#define WATER_TEMP_ADC 9
+
+// Pulses from the Wind Speed (Check)
+#define WIND_SPEED_PIN 11
+// Pulses from the Wind Speed (Check)
+#define WATER_SPEED_PIN 12
+
+
+
+
 
 // ---  Example of using PROGMEM to hold Product ID.  However, doing this will prevent any updating of
 //      these details outside of recompiling the program.
@@ -52,8 +100,7 @@ TimedEventQueue timedEventQueue = TimedEventQueue();
 EventHandler sendN2kBatteryHandler = EventHandler(&SendN2kBattery);
 EventHandler sendN2KEnviroHandler = EventHandler(&SendN2KEnviro);
 EventHandler sendN2KpolarHandler = EventHandler(&SendN2KPolar);
-EventHandler sendN2KFakeBoatHandler = EventHandler(&SendFakeBoatData);
-
+EventHandler multiSensorHandler = EventHandler(&RunMultiSensor);
 
 EnviroMonitor enviroMonitor = EnviroMonitor();
 // initialise the polar chart for the boat, defined in pogo1250.h
@@ -63,23 +110,39 @@ Polar_Performance polarPerformance = Polar_Performance(POGO1250_NAME,
         pogo1250Data_twa,
         pogo1250Data_tws,
         pogo1250Data_bsp);
-Statistic awaStatistic = Statistic();
-Statistic awsStatistic = Statistic();
-Statistic bspStatistic = Statistic();
-PolarMonitor polarMonitor = PolarMonitor(&polarPerformance, 
-        &awaStatistic, 
-        &awsStatistic, 
-        &bspStatistic);
 
-#define NBATTERIES 2
+// statistics collect data from monitors.
+Statistics statistics = Statistics();
 
-// 6 ADC pins are needed to fully monitor 2 batteries including temp.
-#define BATTERY_1_ADCV 1
-#define BATTERY_1_ADCA 2
-#define BATTERY_1_ADCT 3
-#define BATTERY_2_ADCV 4
-#define BATTERY_2_ADCA 5
-#define BATTERY_2_ADCT 6
+
+
+// The Boat monitor calcultes derived values and makes the data available to the system.
+BoatMonitor boatMonitor = BoatMonitor(&polarPerformance, 
+        &statistics);
+/*
+ MultiSensor(Statistics *statistics,
+      MotionSensor *motionSensor,
+      uint8_t windSinAdc,
+      uint8_t windCosAdc,
+      uint8_t windSpeedPin,
+      uint8_t waterSpeedPin,
+      double mastHeight = 17.5,
+      double Kfactor = 12,
+      double userSpeedCalibrationFactor = 1.0F,
+      double userWindOffsetRadians = 0.0F,
+      double awsHzPerKnot = 1.045F,
+      double userWaterSpeedCalibrationFactor = 1.0F,
+      double stwHzPerKnot = 5.5F) {
+ */ 
+MotionSensor motionSensor = MotionSensor();
+MultiSensor multiSensor = MultiSensor(&statistics, 
+        &motionSensor,
+        WIND_SIN_ADC,
+        WIND_COS_ADC,
+        WIND_SPEED_PIN,
+        WATER_SPEED_PIN);
+WaterMonitor waterMonitor = WaterMonitor(WATER_TEMP_ADC);
+
 
 
 /**
@@ -110,22 +173,35 @@ BatteryMonitor batteryBank[NBATTERIES] = {
 const unsigned long TransmitMessages[] PROGMEM={
   EnviroMonitor_MESSAGES,
   BatteryMonitor_MESSAGES,
+  BoatMonitor_MESSAGES,
+  WaterMonitor_MESSAGES,
   0};
 
+
+
 void setup() {
-  SerialUSB.begin(115200);
   Serial.begin(115200);
+  SerialUSB.begin(115200);
 
   enviroMonitor.begin();
   for (int i = 0; i < NBATTERIES; i++ ) {
+    batteryBank[i].setMode(MONITOR_MODE_DEMO);
     batteryBank[i].begin();
   }
+
+  enviroMonitor.setMode(MONITOR_MODE_ENABLED);
+  waterMonitor.setMode(MONITOR_MODE_DEMO);
+  multiSensor.setMode(MONITOR_MODE_DEMO);
+
+
 
   timedEventQueue.addHandler(&sendN2kBatteryHandler);
   timedEventQueue.addHandler(&sendN2KEnviroHandler);
   timedEventQueue.addHandler(&sendN2KpolarHandler);
-  timedEventQueue.addHandler(&sendN2KFakeBoatHandler);
+  timedEventQueue.addHandler(&multiSensorHandler);
 
+  configuration.init();
+  updateConfig();
   
   
   NMEA2000.SetProductInformation(&MonitorProductInformation );
@@ -135,7 +211,7 @@ void setup() {
                                 25,     // Device class=Inter/Intranetwork Device. See codes on  http://www.nmea.org/Assets/20120726%20nmea%202000%20class%20&%20function%20codes%20v%202.00.pdf
                                 2046    // Just choosen free from code list on http://www.nmea.org/Assets/20121020%20nmea%202000%20registration%20list.pdf                               
                                );
-  NMEA2000.SetForwardStream(&Serial);  // PC output on due programming port
+  NMEA2000.SetForwardStream(DataStream);  // PC output on due Native USB port, the programming port is used for diag and programming.
   // make it listen and be a node, then enable forwarding to make it forward to actisense.
   // N2km_ListenOnly
   // NMEA2000.SetMode(tNMEA2000::N2km_ListenAndSend);
@@ -149,7 +225,7 @@ void setup() {
   NMEA2000.SetForwardSystemMessages(true);
   NMEA2000.SetForwardOwnMessages(true);
   
-  NMEA2000.SetForwardType(tNMEA2000::fwdt_Text); // Show in clear text
+  // NMEA2000.SetForwardType(tNMEA2000::fwdt_Text); // Show in clear text
   
   NMEA2000.SetMsgHandler(&HandleNMEAMessage);
   NMEA2000.Open();
@@ -157,16 +233,8 @@ void setup() {
 
   
 
-  // I had problem to use same Serial stream for reading and sending.
-  // It worked for a while, but then stopped.
-  ActisenseReader.SetReadStream(&SerialUSB);
-  ActisenseReader.SetMsgHandler(HandleStreamN2kMsg); 
 }
 
-void HandleStreamN2kMsg(const tN2kMsg &N2kMsg) {
-  // N2kMsg.Print(&Serial);
-  NMEA2000.SendMsg(N2kMsg,-1);
-}
 
 void HandleNMEAMessage(const tN2kMsg &N2kMsg) {
   // for the PGNs we are interested in update the statistics.
@@ -174,54 +242,72 @@ void HandleNMEAMessage(const tN2kMsg &N2kMsg) {
   switch(N2kMsg.PGN) {
     case 130306L: // WindSpeed
       {
-        Serial.println("Got Wind Speed");
         unsigned char SID;
         double WindSpeed;
         double WindAngle;
         tN2kWindReference WindReference;
         ParseN2kWindSpeed(N2kMsg, SID, WindSpeed, WindAngle, WindReference);
+        LOG(F("Got Apparent Wind Speed "));
         if (WindReference == N2kWind_Apprent ) {
           // change at some point
           if ( WindSpeed != N2kDoubleNA ) {
-            awsStatistic.update(msToKnots(WindSpeed), tnow);          
+            statistics.aws.update(msToKnots(WindSpeed), tnow);          
+            LOGC(msToKnots(WindSpeed));
+            LOGC(F(" Kn "));
           }
           if ( WindAngle != N2kDoubleNA ) {
-            awaStatistic.update(RadToDeg(WindAngle), tnow);
+            statistics.awa.update(RadToDeg(WindAngle), tnow);
+            LOGC(RadToDeg(WindAngle));
+            LOGC(F(" degrees  "));
           }
+          LOGN(F(" "));
         }
       }
     break;
     case 128259L: // Boat speed.
       {
-        Serial.println("Got Boat Speed");
+        LOG(F("Got Boat Speed "));
         unsigned char SID;
         double WaterRefereced; 
         double GroundReferenced; 
         tN2kSpeedWaterReferenceType SWRT;
         ParseN2kBoatSpeed(N2kMsg, SID, WaterRefereced, GroundReferenced,  SWRT);
         if ( WaterRefereced != N2kDoubleNA ) {
-          bspStatistic.update(msToKnots(WaterRefereced), tnow);
+          statistics.stw.update(msToKnots(WaterRefereced), tnow);
+          LOGC(msToKnots(WaterRefereced));
+          LOGC(F(" kn  "));
         }
+        LOGN(F(" "));
       }
     break;
   }
 }
 
+
+
 void loop() {
   NMEA2000.ParseMessages();
-  ActisenseReader.ParseMessages();
+  if ( configuration.read() ) {
+    updateConfig();
+  }
   timedEventQueue.tick(millis());
- 
+}
+
+void updateConfig() {
+    multiSensor.updateConfiguration(configuration);
 }
 
 
 
 
-
-#define BatteryUpdatePeriod 1000
+#define BatteryUpdatePeriod 5000
 #define EnviroUpdatePeriod 10000
 #define PolarUpdatePeriod 1000
-#define BoatDatUpdatePeriod 1000
+
+unsigned long RunMultiSensor(unsigned long now) {
+  multiSensor.read();
+  return now+100;
+}
 
 unsigned long SendN2kBattery(unsigned long now) {
   static uint8_t ncalls = 0;
@@ -230,22 +316,15 @@ unsigned long SendN2kBattery(unsigned long now) {
     tN2kMsg N2kMsg;
     for (int i = 0; i < NBATTERIES; i++ ) {
      double diff = 0.4F*i;
-      batteryBank[i].setFake(12.8F+diff,1.12F+diff,17.9F+diff);
       batteryBank[i].read();
       batteryBank[i].fillStatusMessage(N2kMsg);
-       Serial.print(i);
-       Serial.println(":Sending Voltage Status ");
        NMEA2000.SendMsg(N2kMsg);
       if ( ncalls%16 == 0 ) {
         batteryBank[i].fillChargeStatusMessage(N2kMsg);
-       Serial.print(i);
-        Serial.println(":Sending Charge Status");
         NMEA2000.SendMsg(N2kMsg);
       }
       if ( ncalls%30 == 0 ) {
         batteryBank[i].fillBatteryConfigurationMessage(N2kMsg);
-       Serial.print(i);
-        Serial.println(":Sending Config Status");
         NMEA2000.SendMsg(N2kMsg);        
       }
     }
@@ -254,44 +333,29 @@ unsigned long SendN2kBattery(unsigned long now) {
 
 unsigned long  SendN2KEnviro(unsigned long now) {
   if(enviroMonitor.read()) {
+    LOGLN(F("Sending environment"));
     tN2kMsg N2kMsg;
     enviroMonitor.fillStatusMessage(N2kMsg);
     NMEA2000.SendMsg(N2kMsg);
-    Serial.println("Sent");
   }
   return millis() + EnviroUpdatePeriod;
 }
 
-unsigned long SendFakeBoatData(unsigned long now) {
-  tN2kMsg N2kMsg;
-  static unsigned char sid=0;
-  Serial.println("Sending Fake Boat Data");
-  SetN2kBoatSpeed(N2kMsg, sid++, knToms(8.9F));
-  NMEA2000.SendMsg(N2kMsg);
-
-  SetN2kWaterDepth(N2kMsg, sid++, 7.5F, 0.3F);
-  NMEA2000.SendMsg(N2kMsg);
-
-  SetN2kWindSpeed(N2kMsg, sid++, knToms(22.5F), DegToRad(33.0F), N2kWind_Apprent);
-  NMEA2000.SendMsg(N2kMsg);
-
-  SetN2kTemperature(N2kMsg, sid++, 1, N2kts_SeaTemperature,
-                     CToKelvin(12.3));
-  NMEA2000.SendMsg(N2kMsg);
-
-
-  return millis() + BoatDatUpdatePeriod;  
-
-}
 
 
 unsigned long SendN2KPolar(unsigned long now) {
-  polarMonitor.read(now);
+  LOGLN(F("Polar Performance"));
+  boatMonitor.read(now);
   tN2kMsg N2kMsg;
-  Serial.println("Polar Performance");
-  polarMonitor.fillPolarPerformance(N2kMsg);
+  boatMonitor.fillPolarPerformance(N2kMsg);
   NMEA2000.SendMsg(N2kMsg);
-  polarMonitor.fillTargetBoatSpeed(N2kMsg);
+  boatMonitor.fillTargetBoatSpeed(N2kMsg);
+  NMEA2000.SendMsg(N2kMsg);
+  boatMonitor.fillBoatSpeed(N2kMsg);
+  NMEA2000.SendMsg(N2kMsg);
+  boatMonitor.fillAparentWind(N2kMsg);
+  NMEA2000.SendMsg(N2kMsg);
+  boatMonitor.fillTrueWind(N2kMsg);
   NMEA2000.SendMsg(N2kMsg);
   return millis() + PolarUpdatePeriod;  
 }

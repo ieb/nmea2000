@@ -3,17 +3,6 @@
 #define __EVENTS_H__
 
 
-#ifdef TEST
-#include <iostream>
-#define TRACE(x)
-#define DEBUG(x) x
-#define ERROR(x) x
-#else
-#define TRACE(x)
-#define DEBUG(x)
-#define ERROR(x)
-#endif
-
 #ifndef NULL
 #define NULL 0
 #endif
@@ -35,6 +24,7 @@ class TimedEventQueue {
 public:
     TimedEventQueue(void) {
         firstEventHandler = NULL;
+        next_report = 0;
     }
 
     void addHandler(EventHandler *handler) {
@@ -68,14 +58,39 @@ public:
         if ( ne->next < now) {
             TRACE(std::cout << "Calling func for Next Event. " << ne->next << std::endl);
             ne->next = ne->handle(now);
+            eventCalled = true;
+            nevents++;
+        } else if (eventCalled) {
+            eventCalled = false;
+            tidle += ne->next - now;
         } else {
             TRACE(std::cout << "Next Event is in the future. " << ne->next << ":" << now <<std::endl);
-
+        }
+        if ( now > next_report) {
+            STATUS(F("Status: Events "));
+            STATUS(nevents);
+            STATUS(F(" idle:"));
+            STATUS(tidle);
+            STATUS(F("\n"));
+            tidle = 0;
+            next_report = now + 10000;
         }
     }
+
+    unsigned long getIdletime() {
+        return tidle;
+    }
+    unsigned long getEventCount() {
+        return nevents;
+    }
+
 private:
     EventHandler *firstEventHandler;
     int nhandlers;
+    bool eventCalled;
+    unsigned long nevents;
+    unsigned long tidle;
+    unsigned long next_report;
 };
 
 

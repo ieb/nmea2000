@@ -5,18 +5,33 @@
 #include <stdint.h>
 #include <math.h>
 
-#ifdef TEST
-#include <iostream>
-#define TRACE(x)
-#define DEBUG(x) x
-#define ERROR(x) x
-#else
-#define TRACE(x)
-#define DEBUG(x)
-#define ERROR(x)
-#endif
 
+class SimpleStatistic {
+public:
+    SimpleStatistic() {
 
+    }
+    void update(float v, unsigned long tnow) {
+        value = v; at = tnow;
+    }
+    float means(int nseconds, unsigned long tnow) {
+        return value;
+    }
+    float meanm(int nminutes, unsigned long tnow) {
+        return value;
+    }
+    float stdevs(int nseconds, unsigned long tnow) {
+        return 0.0F;
+    }
+    float stdevm(int nseconds, unsigned long tnow) {
+        return 0.0F;
+    }
+
+private:
+    double value;
+    unsigned long at;
+
+};
 
 class Statistic {
     public:
@@ -270,6 +285,28 @@ class DegreesStatistic :  public RadianStatistic {
 
 };
 
+
+class Statistics {
+public:
+    Statistics() {
+        awa = RadianStatistic();
+        aws = Statistic();
+        twa = RadianStatistic();
+        tws = Statistic();
+        stw = Statistic();
+        pitch  = RadianStatistic();
+        roll = RadianStatistic();
+        leeway  = RadianStatistic();
+    }
+    RadianStatistic awa;
+    Statistic aws;
+    RadianStatistic twa;
+    Statistic tws;
+    Statistic stw;
+    RadianStatistic leeway;
+    RadianStatistic pitch;
+    RadianStatistic roll;
+};
 
 
 #endif

@@ -1,17 +1,14 @@
+#ifndef __POLARTEST_H__
+#define __POLARTEST_H__
+
 #ifndef ARDUINO
+#ifndef TEST
 #define TEST 1
 #endif
-
-#ifdef TEST
-#include <iostream>
-#define TRACE(x)
-#define DEBUG(x) x
-#define ERROR(x) x
-#else
-#define TRACE(x)
-#define DEBUG(x)
-#define ERROR(x)
 #endif
+
+
+#include "testmocks.h"
 
 
 #include <math.h>
@@ -21,6 +18,7 @@
 #ifdef TEST
 
 // Unit tests ============================================================================
+
 
 
 #import "pogo1250.h"
@@ -220,16 +218,7 @@ bool testCos() {
     return true;
 }
 
-int main() {
-    if ( testPolarPerformance() &&
-         testTrueWind() &&
-           testACos() &&
-           testCos()
-         ) {
-        return 0;
-    }
-    return 1;
-}
+#endif
 #endif
 
 

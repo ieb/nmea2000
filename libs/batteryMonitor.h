@@ -2,7 +2,11 @@
 #ifndef __BATTERYMONITOR_H__
 #define __BATTERYMONITOR_H__
 
+#include "monitors.h"
+
+#ifndef TEST
 #include <N2kMessages.h>
+#endif
 
 #ifndef NULL
 #define NULL 0
@@ -81,29 +85,30 @@ public:
         _temperatureADCPin = temperatureADCPin;
         _convertADCToC = convertADCToC;
         _zeroCOffset = zeroCOffset;
-        useFake = false;
+        monitorMode = MONITOR_MODE_ENABLED;
 
     }
     void begin() {
         // perform any init required.
     }
-    void setFake(double voltage, double current, double temp) {
-      fakeVoltage = voltage;
-      fakeCurrent = current;
-      fakeTemperature = temp;
-      useFake = true;
+    void setMode(tMontorMode mode) {
+      monitorMode = mode;
+    }
+
+    bool isEnabled() {
+        return (monitorMode == MONITOR_MODE_ENABLED) || (monitorMode == MONITOR_MODE_DEMO);
     }
     void read() {
-#ifdef DEMOMODE
+      if(monitorMode == MONITOR_MODE_DEMO) {
         if ( _voltage == N2kDoubleNA ) {
             _voltage = 12.6;
             _current = 0.0;
             _temperature = 20.0;
         }
-        _voltage = _voltage+0.01*(rand()%100);
-        _current = _current+0.01*(rand()%100);
-        _temperature = _temperature+0.01*(rand()%100);
-#else
+        _voltage = _voltage+0.001*((rand()%100)-50);
+        _current = _current+0.001*((rand()%100)-50);
+        _temperature = _temperature+0.001*((rand()%100)-50);
+      } else if ( monitorMode == MONITOR_MODE_ENABLED) {
         if ( _voltageADCPin != 0 ) {
             _voltage = _convertADCToVolts*analogRead(_voltageADCPin)-_zeroVOffset;
         } else {
@@ -119,14 +124,17 @@ public:
         } else {
             _temperature = 20.0F;
         }
-#endif
-        if (useFake) {
-          _voltage = fakeVoltage;
-          _current = fakeCurrent;
-          _temperature = fakeTemperature;
-          useFake = false;
-        }
-        _batSID = _batSID+1;
+      }
+      _batSID = _batSID+1;
+      LOG(F("Read Battery"));
+      LOGC((int)_dcInstance);
+      LOGC(F(","));
+      LOGC(_voltage);
+      LOGC(F(" V,"));
+      LOGC(_current);
+      LOGC(F(" A,"));
+      LOGC(_temperature);
+      LOGN(F(" C"));
     }
     void fillStatusMessage(tN2kMsg &N2kMsg) {
         SetN2kDCBatStatus(N2kMsg,
@@ -185,13 +193,8 @@ private:
     double _zeroAOffset; // 5V = 100A,  
     int _temperatureADCPin;
     double _convertADCToC; // 0V = 0C, 5V = 100C  
-    double _zeroCOffset; // 
-
-    
-    double fakeVoltage;
-    double fakeCurrent;
-    double fakeTemperature;
-    bool useFake;
+    double _zeroCOffset; //     
+    tMontorMode monitorMode;
     
 };
 

@@ -1,0 +1,11 @@
+{
+        "doc" : "Put this in /usr/local/src/signalk-server-node/plugin-config-data/signalk-to-influxdb.json  to enable logging over TCP to InfluxDB",
+
+  "enabled": true,
+  "configuration": {
+    "host": "localhost",
+    "port": 8086,
+    "database": "boatdata",
+    "blackOrWhite": "Black"
+  }
+}

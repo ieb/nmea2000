@@ -5,18 +5,23 @@ The repository is mainly to keep a record of work in progress, rather than a nea
 The code runs on an Arduino Due with a CAN bus trancever.
 Some code may also run on an Arduino Mega to simulate Raymarine wind, speed and temperature sensors.
 The heavy lifting on the Arduino as been done by https://github.com/ttlappalainen/NMEA2000.git to use the code here on a Due you may also need
-https://github.com/collin80/due_can.git https://github.com/ttlappalainen/NMEA2000_due.git which the NMEA2000 implementation and CAN Bus drivers 
-for the Due. 
+https://github.com/collin80/due_can.git https://github.com/ttlappalainen/NMEA2000_due.git which the NMEA2000 implementation and CAN Bus drivers for the Due. 
 
-This repository adds sailing performance functionality to a basic NMEA2000 -> SignalK bridge as well as some additional sensors. 
 
-* statistics.h contains time based stats aggregation to allow a stream of random time measurements to be collected and agregated in uniform time periods, usefull for reducing raw update rates to prevent staturation of IO or CPU.
-* polar.h contains generic polar performance calculations typically used to converted TWA/TWS to a target STW, or with current STW to a % performance so that these messages can be injeted back onto the CAN bus.
-* pogo1250.h is the standard Pogo 1250 polar data for polar.h
-* events.h is an event processing queue for Arduino
-* enviroMonitor.h adds pressure and temperature CANbus messages from BPM180 sensor (Bosh, tipically < $5)
-* batteryMonitor.h adds battery montoring using Hall Effect current sesors. 
-* monitorAndBridge.ino is the monitor and Bridging Arduino code for the Arduino Due.
+* libs contains c++ code for the ArduinoDue
+** batteryMonitor.h - monitoring batteries and current using Hall Effect sensors on ADC pins.
+** boarMonitor.h - emitting boat speed, wind speed data as NMEA2000 PGNs
+** enviroMonitor.h - monitoring pressure and temperature
+** events.h - an event queue.
+** monitors.h - constants
+** motionSensor.h - rotation, acceleration sensor
+** multiSensor.h - wind and water speed sensor with corrections for motion etc, also calculates 
+** pogo1250.h - Data for a pogo1250 polar.
+** polar.h - polar performance calculations.
+** statistics.h - stats for linear and radial data.
+** testmocks.h - mocks to allow tests to run.
+** waterMonitor.h - water temp sensor.
+* monitorAndBridge contains a sensor monitor and bridge from a NMEA2000 bus to ActisenseSerial, with the ability to read the raw signals from Airmar water speed and RayMarine WindSensorts, battery voltages and a 10DoF sensor board. There is a built in polar performance monitor that emits % polar performance and target boat speed.
 
 The Marine instrument installation is a Raymarine SeatalkNG installation with a e7 MFD, althogh there is nothing here that is specific to Raymarine. At the electrical and protocol level SeatalkNG == NMEA2000 == CAN@250kb/s. The differences are physical, mainly to ease installation.
 
@@ -58,11 +63,12 @@ Now switch to using ssh in from a Linux box.
     apt-get update
     apt-get install -y curl git build-essential libnss-mdns avahi-utils libavahi-compat-libdnssd-dev
     cd /opt/
-    wget https://nodejs.org/dist/v6.10.2/node-v6.10.2-linux-armv6l.tar.xz
-    tar xvJf node-v6.10.2-linux-armv6l.tar.xz 
-    rm node-v6.10.2-linux-armv6l.tar.xz
+//    wget https://nodejs.org/dist/v6.10.2/node-v6.10.2-linux-armv6l.tar.xz
+    wget https://nodejs.org/dist/v6.11.1/node-v6.11.1-linux-armv6l.tar.gz 
+    tar xvzf node-v6.11.1-linux-armv6l.tar.gz  
+    rm node-v6.11.1-linux-armv6l.tar.gz 
     cd /usr/local/bin/
-    ln -s /opt/node-v6.10.2-linux-armv6l/bin/* .
+    ln -s /opt/node-v6.11.1-linux-armv6l/bin/* .
 
 
 ## Install InfluxDB as root
@@ -113,7 +119,7 @@ Check all is Ok
 
     service influxdb status
     service collectd status
-    service grafana status
+    service grafana-server status
 
 ## Complete SignalK installation
 
@@ -153,4 +159,50 @@ The SignalK process will report to InfluxDB over the http API, which involves 1 
 This is probably less overhead than reporting using the InfluxDB UDP route, but keep an eye on load average
 and IO stats in Grafana (see OSDashboard.json for a Grafana Daskboard on the OS). Also see WindDashboard for 
 a Dashboard on AWA etc.
+
+
+
+
+## Connections
+
+The Arduino is connected to the Pi using a USB Cable, the Arduino appears as a USB CDC Serial port at /dev/ttyACM0 which can be opened at 115200 baud. 
+
+lsusb should show
+
+    root@lunacore:/usr/local/src/signalk-server-node# lsusb
+    Bus 001 Device 005: ID 2341:003d Arduino SA 
+    Bus 001 Device 001: ID 1d6b:0002 Linux Foundation 2.0 root hub
+    root@lunacore:/usr/local/src/signalk-server-node# 
+    root@lunacore:/usr/local/src/signalk-server-node# usb-devices 
+
+    T:  Bus=01 Lev=00 Prnt=00 Port=00 Cnt=00 Dev#=  1 Spd=480 MxCh= 1
+    D:  Ver= 2.00 Cls=09(hub  ) Sub=00 Prot=01 MxPS=64 #Cfgs=  1
+    P:  Vendor=1d6b ProdID=0002 Rev=04.04
+    S:  Manufacturer=Linux 4.4.50+ dwc_otg_hcd
+    S:  Product=DWC OTG Controller
+    S:  SerialNumber=20980000.usb
+    C:  #Ifs= 1 Cfg#= 1 Atr=e0 MxPwr=0mA
+    I:  If#= 0 Alt= 0 #EPs= 1 Cls=09(hub  ) Sub=00 Prot=00 Driver=hub
+
+    T:  Bus=01 Lev=01 Prnt=01 Port=00 Cnt=01 Dev#=  5 Spd=12  MxCh= 0
+    D:  Ver= 1.10 Cls=02(commc) Sub=00 Prot=00 MxPS= 8 #Cfgs=  1
+    P:  Vendor=2341 ProdID=003d Rev=00.01
+    S:  Manufacturer=Arduino (www.arduino.cc)
+    S:  Product=Arduino Due Prog. Port
+    S:  SerialNumber=9543334393335111B181
+    C:  #Ifs= 2 Cfg#= 1 Atr=c0 MxPwr=100mA
+    I:  If#= 0 Alt= 0 #EPs= 1 Cls=02(commc) Sub=02 Prot=01 Driver=cdc_acm
+    I:  If#= 1 Alt= 0 #EPs= 2 Cls=0a(data ) Sub=00 Prot=00 Driver=cdc_acm
+    root@lunacore:/usr/local/src/signalk-server-node# 
+
+
+
+
+Signak node server should be configured with an actisense input listening to this port, and should have plugins configured to 
+a) send data to InfluxDB b) NMEA0183. Currently there are only plugins for TCP connections which causes a high level of 
+turnover of TCP ports, it might be better to use UDP, that that will need some coding.
+
+It is possible to power the Pi from the ArduinoDue over USB and visa versa. The Arduino uses < 100mA, but the Pi might use a bit more when under full load. 
+
+
 

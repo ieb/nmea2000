@@ -1,15 +1,21 @@
+
+#ifndef __EVENTSTEST_H__
+#define __EVENTSTEST_H__
+
 #ifndef ARDUINO
+#ifndef TEST
 #define TEST 1
 #endif
-
-#ifdef TEST
-#include <iostream>
 #endif
 
-#import "events.h"
+#include "testmocks.h"
+#include <math.h>
+#include "events.h"
 
 
-#ifdef TEST
+#ifdef TEST// unit tests can be run on a desktop.
+
+// Events 
 unsigned long handlerTest1(unsigned long now) {
     std::cout << "Handler 1 called " << std::endl;
     return now+(rand()%100)+1;
@@ -89,16 +95,8 @@ bool testEventEmitter(void) {
     eventET.removeListener(&l2);
     std::cout << " Done Removing listeners twice " << std::endl;
     eventET.emit("testing6 should not show");
-}
-
-
-
-int main() {
-    if (testTimedEventQueue() &&
-        testEventEmitter()) {
-        return 0;
-    }
     return 1;
 }
 
+#endif
 #endif

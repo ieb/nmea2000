@@ -1,17 +1,16 @@
+#ifndef __STATISTICTEST_H__
+#define __STATISTICTEST_H__
+
 #ifndef ARDUINO
+#ifndef TEST
 #define TEST 1
 #endif
-
-#ifdef TEST
-#include <iostream>
-#define TRACE(x)
-#define DEBUG(x) x
-#define ERROR(x) x
-#else
-#define TRACE(x)
-#define DEBUG(x)
-#define ERROR(x)
 #endif
+
+
+
+
+#include "testmocks.h"
 
 
 #include <math.h>
@@ -149,14 +148,9 @@ bool testDegreeStatistic(void) {
 
 
 
-int main() {
-    if (testLinearStatistics() &&
-        testDegreeStatistic() &&
-        testRadianStatistic() ) {
-        return 0;
-    }
-    return 1;
-}
+
 #endif
+#endif
+
 
 

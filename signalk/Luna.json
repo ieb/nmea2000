@@ -1,0 +1,25 @@
+{
+  "vessel": {
+    "name": "Luna",
+    "uuid"  : "urn:mrn:signalk:uuid:f471e6ac-d374-42dc-9797-d01c9eb2b46f"
+  },
+
+  "interfaces": {},
+
+  "pipedProviders": [
+{
+    "id": "actisense",
+    "pipeElements": [{
+      "type": "providers/execute",
+      "options": {
+        "command": "actisense-serial /dev/ttyACM0"
+      }
+    }, {
+      "type": "providers/liner"
+    }, {
+      "type": "providers/n2kAnalyzer"
+    }, {
+      "type": "providers/n2k-signalk"
+    }]
+  }]
+}
