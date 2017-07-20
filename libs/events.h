@@ -73,6 +73,7 @@ public:
             STATUS(tidle);
             STATUS(F("\n"));
             tidle = 0;
+            nevents = 0;
             next_report = now + 10000;
         }
     }
