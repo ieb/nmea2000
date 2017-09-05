@@ -38,7 +38,6 @@ Configuration configuration = Configuration(LogStream);
 #include <multiSensor.h>
 #include <enviroMonitor.h>
 
-#define DEMOMODE true
 
 #define NBATTERIES 2
 
@@ -185,13 +184,9 @@ void setup() {
 
   enviroMonitor.begin();
   for (int i = 0; i < NBATTERIES; i++ ) {
-    batteryBank[i].setMode(MONITOR_MODE_DEMO);
     batteryBank[i].begin();
   }
 
-  enviroMonitor.setMode(MONITOR_MODE_ENABLED);
-  waterMonitor.setMode(MONITOR_MODE_DEMO);
-  multiSensor.setMode(MONITOR_MODE_DEMO);
 
 
 
@@ -229,10 +224,6 @@ void setup() {
   
   NMEA2000.SetMsgHandler(&HandleNMEAMessage);
   NMEA2000.Open();
-  
-
-  
-
 }
 
 
@@ -247,26 +238,26 @@ void HandleNMEAMessage(const tN2kMsg &N2kMsg) {
         double WindAngle;
         tN2kWindReference WindReference;
         ParseN2kWindSpeed(N2kMsg, SID, WindSpeed, WindAngle, WindReference);
-        LOG(F("Got Apparent Wind Speed "));
+        //LOG(F("Got Apparent Wind Speed "));
         if (WindReference == N2kWind_Apprent ) {
           // change at some point
           if ( WindSpeed != N2kDoubleNA ) {
             statistics.aws.update(msToKnots(WindSpeed), tnow);          
-            LOGC(msToKnots(WindSpeed));
-            LOGC(F(" Kn "));
+            //LOGC(msToKnots(WindSpeed));
+            //LOGC(F(" Kn "));
           }
           if ( WindAngle != N2kDoubleNA ) {
             statistics.awa.update(RadToDeg(WindAngle), tnow);
-            LOGC(RadToDeg(WindAngle));
-            LOGC(F(" degrees  "));
+            //LOGC(RadToDeg(WindAngle));
+            //LOGC(F(" degrees  "));
           }
-          LOGN(F(" "));
+          //LOGN(F(" "));
         }
       }
     break;
     case 128259L: // Boat speed.
       {
-        LOG(F("Got Boat Speed "));
+        //LOG(F("Got Boat Speed "));
         unsigned char SID;
         double WaterRefereced; 
         double GroundReferenced; 
@@ -274,10 +265,10 @@ void HandleNMEAMessage(const tN2kMsg &N2kMsg) {
         ParseN2kBoatSpeed(N2kMsg, SID, WaterRefereced, GroundReferenced,  SWRT);
         if ( WaterRefereced != N2kDoubleNA ) {
           statistics.stw.update(msToKnots(WaterRefereced), tnow);
-          LOGC(msToKnots(WaterRefereced));
-          LOGC(F(" kn  "));
+          //LOGC(msToKnots(WaterRefereced));
+          //LOGC(F(" kn  "));
         }
-        LOGN(F(" "));
+        //LOGN(F(" "));
       }
     break;
   }
@@ -295,6 +286,12 @@ void loop() {
 
 void updateConfig() {
     multiSensor.updateConfiguration(configuration);
+    enviroMonitor.updateConfiguration(configuration);
+    boatMonitor.updateConfiguration(configuration);
+    waterMonitor.updateConfiguration(configuration);
+    for (int i = 0; i < NBATTERIES; i++ ) {
+      batteryBank[i].updateConfiguration(configuration);
+    }
 }
 
 
@@ -315,17 +312,17 @@ unsigned long SendN2kBattery(unsigned long now) {
 
     tN2kMsg N2kMsg;
     for (int i = 0; i < NBATTERIES; i++ ) {
-     double diff = 0.4F*i;
-      batteryBank[i].read();
-      batteryBank[i].fillStatusMessage(N2kMsg);
-       NMEA2000.SendMsg(N2kMsg);
-      if ( ncalls%16 == 0 ) {
-        batteryBank[i].fillChargeStatusMessage(N2kMsg);
-        NMEA2000.SendMsg(N2kMsg);
-      }
-      if ( ncalls%30 == 0 ) {
-        batteryBank[i].fillBatteryConfigurationMessage(N2kMsg);
-        NMEA2000.SendMsg(N2kMsg);        
+      if (batteryBank[i].read()) {
+        batteryBank[i].fillStatusMessage(N2kMsg);
+         NMEA2000.SendMsg(N2kMsg);
+        if ( ncalls%16 == 0 ) {
+          batteryBank[i].fillChargeStatusMessage(N2kMsg);
+          NMEA2000.SendMsg(N2kMsg);
+        }
+        if ( ncalls%30 == 0 ) {
+          batteryBank[i].fillBatteryConfigurationMessage(N2kMsg);
+          NMEA2000.SendMsg(N2kMsg);        
+        }
       }
     }
     return millis() + BatteryUpdatePeriod;
@@ -338,25 +335,32 @@ unsigned long  SendN2KEnviro(unsigned long now) {
     enviroMonitor.fillStatusMessage(N2kMsg);
     NMEA2000.SendMsg(N2kMsg);
   }
+  if(waterMonitor.read()) {
+    LOGLN(F("Sending waterm temp"));
+    tN2kMsg N2kMsg;
+    waterMonitor.fillWaterTemperature(N2kMsg);
+    NMEA2000.SendMsg(N2kMsg);
+   }
   return millis() + EnviroUpdatePeriod;
 }
 
 
 
 unsigned long SendN2KPolar(unsigned long now) {
-  LOGLN(F("Polar Performance"));
-  boatMonitor.read(now);
-  tN2kMsg N2kMsg;
-  boatMonitor.fillPolarPerformance(N2kMsg);
-  NMEA2000.SendMsg(N2kMsg);
-  boatMonitor.fillTargetBoatSpeed(N2kMsg);
-  NMEA2000.SendMsg(N2kMsg);
-  boatMonitor.fillBoatSpeed(N2kMsg);
-  NMEA2000.SendMsg(N2kMsg);
-  boatMonitor.fillAparentWind(N2kMsg);
-  NMEA2000.SendMsg(N2kMsg);
-  boatMonitor.fillTrueWind(N2kMsg);
-  NMEA2000.SendMsg(N2kMsg);
+  if (boatMonitor.read(now) ) {
+    LOGLN(F("Polar Performance"));
+    tN2kMsg N2kMsg;
+    boatMonitor.fillPolarPerformance(N2kMsg);
+    NMEA2000.SendMsg(N2kMsg);
+    boatMonitor.fillTargetBoatSpeed(N2kMsg);
+    NMEA2000.SendMsg(N2kMsg);
+    boatMonitor.fillBoatSpeed(N2kMsg);
+    NMEA2000.SendMsg(N2kMsg);
+    boatMonitor.fillAparentWind(N2kMsg);
+    NMEA2000.SendMsg(N2kMsg);
+    boatMonitor.fillTrueWind(N2kMsg);
+    NMEA2000.SendMsg(N2kMsg);
+  }
   return millis() + PolarUpdatePeriod;  
 }
 

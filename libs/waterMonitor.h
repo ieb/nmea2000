@@ -2,7 +2,7 @@
 #ifndef __WATERMONITOR_H__
 #define __WATERMONITOR_H__
 
-#include "monitors.h"
+#include "configuration.h"
 
 #ifndef TEST
 #include <N2kMessages.h>
@@ -20,15 +20,8 @@ public:
     WaterMonitor(uint8_t _waterTempADC) {
       _waterTempADC = _waterTempADC;
       sid = 0;
-      monitorMode = MONITOR_MODE_ENABLED;
-    }
-
-    void setMode(tMontorMode mode) {
-      monitorMode = mode;
-    }
-
-    bool isEnabled() {
-        return (monitorMode == MONITOR_MODE_ENABLED) || (monitorMode == MONITOR_MODE_DEMO);
+      sensorsConnected = false;
+      demoMode = false;
     }
 
     /**
@@ -39,16 +32,20 @@ public:
 
 #define CONVERT_TO_TEMPERATURE(x) (((double)x*0.00592749734822F)-1.8F)
 
-    void read() {
-      if (monitorMode == MONITOR_MODE_DEMO) {
+    bool read() {
+      if (!sensorsConnected) {
+        return false;
+      }
+      if (demoMode) {
         waterTemperature = max(0.0F, waterTemperature+0.01*((rand()%100)-50));
-      } else if (monitorMode == MONITOR_MODE_ENABLED ){
+      } else {
         waterTemperature = CONVERT_TO_TEMPERATURE(analogRead(_waterTempADC));
       }
       sid++;
       LOG(F("Water Temperature "));
       LOGC(waterTemperature);
       LOGN(F(" C"));
+      return true;
     }
 
     bool fillWaterTemperature(tN2kMsg &N2kMsg) {
@@ -60,13 +57,18 @@ public:
         return false;
     }
 
+    void updateConfiguration(Configuration configuration) {
+        sensorsConnected = configuration.getFlag(CONFIG_FLAGS_SENSORS_ENABLED);
+        demoMode = configuration.getFlag(CONFIG_FLAGS_DEMO_ENABLED);
+    }
 
 
   private:
     double waterTemperature; // in C
     uint8_t _waterTempADC;
     uint8_t sid;
-    tMontorMode monitorMode;
+    bool sensorsConnected;
+    bool demoMode;
 
 
 

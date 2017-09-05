@@ -13,14 +13,15 @@
 #define Del 0x7F
 
 #define FACTORY_DEFAULT       0b0000000
-#define LOGGING_ON            0b0000001
-#define SENSORS_ON        0b0000010
-#define STATUS_ON        0b0000100
-#define LOGGING_OFF_MASK      0b1111110
-#define SENSORS_OFF_MASK      0b1111101
-#define STATUS_OFF_MASK      0b1111011
 
-#define CONFIG_FLAGS_SENSORS_ENABLED 0b0000010
+
+#define CONFIG_RESERVED1                 0b0000001
+#define CONFIG_FLAGS_SENSORS_ENABLED     0b0000010
+#define CONFIG_FLAGS_DEMO_ENABLED        0b0000100
+#define CONFIG_FLAGS_BATTERIES_CONNECTED 0b0001000
+#define CONFIG_FLAGS_PERFORMANCE_ENABLED 0b0010000
+#define CONFIG_FLAGS_ENNVIRO_ENABLED     0b0100000
+#define CONFIG_FLAGS_ATTITUDE_ENABLED    0b1000000
 
 
 #define MAX_COMMAND_LENGTH 80
@@ -52,6 +53,8 @@ public:
     Configuration(Stream *stream) {
         this->stream = stream;
         cbp = 0;
+        logging = false;
+        status = false;
     }
     void init() {
         if (!loadFromFlash()) {
@@ -65,7 +68,7 @@ public:
         while (stream->available() > 0 && (lastChar = stream->read()) != -1 && !result) {
             switch(lastChar) {
                 case Escape:
-                    configData.flags = configData.flags & LOGGING_OFF_MASK;
+                    logging = false;
                     break;
                 case CarrageReturn:
                     commandBuffer[cbp++] = 0;
@@ -96,15 +99,12 @@ public:
     }
 
     bool isLoggingOn() {
-        return ((configData.flags & LOGGING_ON) == LOGGING_ON);
+        return logging;
     }
     bool isStatusOn() {
-        return ((configData.flags & STATUS_ON) == STATUS_ON);
+        return status;
     }
 
-    bool areSensorsEnabled() {
-        return ((configData.flags & SENSORS_ON) == SENSORS_ON);
-    }
 
 
 private:
@@ -115,6 +115,8 @@ private:
     tConfigObj configData;
     DueFlashStorage dueFlashStorage;
     unsigned long waitTime;
+    bool logging;
+    bool status;
 
 
     bool parseCommand() {
@@ -124,19 +126,46 @@ private:
             
             
       if ( strncmp(commandBuffer,"log on", 6) == 0 ) {
-        configData.flags = configData.flags | LOGGING_ON;
+        logging = true;
         return false;
       } else if ( strncmp(commandBuffer,"log off", 7) == 0 ) {
-        configData.flags = configData.flags & LOGGING_OFF_MASK;
+        logging = false;
+        return false;
+      } else if (  strncmp(commandBuffer,"status on", 9) == 0 ) {
+        status = true;
+        return false;
+      } else if (  strncmp(commandBuffer,"status off", 10) == 0 ) {
+        status = false;
         return false;
       } else if (  strncmp(commandBuffer,"sensors on", 10) == 0 ) {
-        configData.flags = configData.flags | SENSORS_ON;
+        configData.flags = configData.flags | CONFIG_FLAGS_SENSORS_ENABLED;
       } else if (  strncmp(commandBuffer,"sensors off", 11) == 0 ) {
-        configData.flags = configData.flags & SENSORS_OFF_MASK;
-      } else if (  strncmp(commandBuffer,"status on", 9) == 0 ) {
-        configData.flags = configData.flags | STATUS_ON;
-      } else if (  strncmp(commandBuffer,"status off", 10) == 0 ) {
-        configData.flags = configData.flags & STATUS_OFF_MASK;
+        configData.flags = configData.flags & ~CONFIG_FLAGS_SENSORS_ENABLED;
+
+
+      } else if (  strncmp(commandBuffer,"batteries on", 12) == 0 ) {
+        configData.flags = configData.flags | CONFIG_FLAGS_BATTERIES_CONNECTED;
+      } else if (  strncmp(commandBuffer,"batteries off", 13) == 0 ) {
+        configData.flags = configData.flags & ~CONFIG_FLAGS_BATTERIES_CONNECTED;
+      } else if (  strncmp(commandBuffer,"perf on", 7) == 0 ) {
+        configData.flags = configData.flags | CONFIG_FLAGS_PERFORMANCE_ENABLED;
+      } else if (  strncmp(commandBuffer,"perf off", 8) == 0 ) {
+        configData.flags = configData.flags & ~CONFIG_FLAGS_PERFORMANCE_ENABLED;
+      } else if (  strncmp(commandBuffer,"enviro on", 9) == 0 ) {
+        configData.flags = configData.flags | CONFIG_FLAGS_ENNVIRO_ENABLED;
+      } else if (  strncmp(commandBuffer,"enviro off", 10) == 0 ) {
+        configData.flags = configData.flags & ~CONFIG_FLAGS_ENNVIRO_ENABLED;
+      } else if (  strncmp(commandBuffer,"attitude on", 11) == 0 ) {
+        configData.flags = configData.flags | CONFIG_FLAGS_ATTITUDE_ENABLED;
+      } else if (  strncmp(commandBuffer,"attitude off", 12) == 0 ) {
+        configData.flags = configData.flags & ~CONFIG_FLAGS_ATTITUDE_ENABLED;
+      } else if (  strncmp(commandBuffer,"demo on", 7) == 0 ) {
+        configData.flags = configData.flags | CONFIG_FLAGS_DEMO_ENABLED;
+      } else if (  strncmp(commandBuffer,"demo off", 8) == 0 ) {
+        configData.flags = configData.flags & ~CONFIG_FLAGS_DEMO_ENABLED;
+
+
+
       } else if (  strncmp(commandBuffer,"waterspeedcal ", 14) == 0 ) {
         setConfig(CONFIG_WATER_SPEED_CAL, atof(&commandBuffer[14]));
       } else if ( strncmp(commandBuffer,"windspeedcal ", 13) == 0 ) {
@@ -160,15 +189,17 @@ private:
       } else if (  strncmp(commandBuffer,"status", 6) == 0 ) {
         stream->println(F("Status "));
         if (isLoggingOn()) {
-            stream->println(F("logging on "));
+            stream->println(                      F("logging          : on"));
         } else {
-            stream->println(F("logging off "));
+            stream->println(                      F("logging          : off"));
         }
-        if (areSensorsEnabled()) {
-            stream->println(F("reading sensors direct"));
-        } else {
-            stream->println(F("reading bus for sensors"));
-        }
+        dumpFlag(CONFIG_FLAGS_SENSORS_ENABLED,    F("Direct Sensors   : "));
+        dumpFlag(CONFIG_FLAGS_BATTERIES_CONNECTED,F("Battery Sensors  : "));
+        dumpFlag(CONFIG_FLAGS_PERFORMANCE_ENABLED,F("Performance calcs: "));
+        dumpFlag(CONFIG_FLAGS_ENNVIRO_ENABLED,    F("Enviro Sensors   : "));
+        dumpFlag(CONFIG_FLAGS_ATTITUDE_ENABLED,   F("Attitude Sensors : "));
+        dumpFlag(CONFIG_FLAGS_DEMO_ENABLED,       F("Demo             : "));
+
 
         stream->print(F("Water speed user calibration factor:"));stream->println(configData.config[CONFIG_WATER_SPEED_CAL]);
         stream->print(F("Wind speed user calibration factor:"));stream->println(configData.config[CONFIG_WIND_SPEED_CAL]);
@@ -181,9 +212,13 @@ private:
         return false;
       } else if (  (strncmp(commandBuffer,"?", 1) == 0 ) || (strncmp(commandBuffer,"help", 4) == 0)) {
         stream->println(F("Commands "));
-        stream->println(F("log on, turn logging on"));
-        stream->println(F("log off, turn logging off, alternatively press Esc"));
+        stream->println(F("log on|off, turn logging on or off, alternatively press Esc to turn off"));
         stream->println(F("sensors on|off, turn sensor moniting on or off"));
+        stream->println(F("batteries on|off, turn batteries moniting on or off"));
+        stream->println(F("perf on|off, turn performance calculations on or off"));
+        stream->println(F("enviro on|off, turn enviroment moniting on or off"));
+        stream->println(F("attitude on|off, turn attituce moniting on or off"));
+        stream->println(F("demo on|off, turn demo mode on or off"));
         stream->println(F("waterspeedcal <float>, water speed calibration factor (default: 1.0)"));
         stream->println(F("windspeedcal <float>, wind speed calibration factor (default: 1.0) "));
         stream->println(F("windangleoffset <float>, wind angle offset in degrees (default: 0.0) "));
@@ -210,6 +245,15 @@ private:
         }
     }
 
+    void dumpFlag(uint8_t flag,  const __FlashStringHelper* msg) {
+        stream->print(msg);
+        if ( getFlag(flag)) {
+          stream->println(F("on"));
+        } else {
+          stream->println(F("off"));
+        }
+    }
+
 
     void factoryReset() {
         uint16_t reset = 0;
@@ -223,7 +267,8 @@ private:
         configData.config[CONFIG_KFACTOR] = 12.0F;
         configData.config[CONFIG_WIND_SPEED_HZ] = 1.045F,
         configData.config[CONFIG_WATER_SPEED_HZ] = 5.5F;
-
+        logging = false;
+        status = false;
     }
 
 

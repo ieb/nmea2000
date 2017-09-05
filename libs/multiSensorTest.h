@@ -24,7 +24,6 @@ bool testMultiSensorMonitor() {
         &motionSensor,
         true, 
         1,2,3,4,17.5F, 12);
-    multiSensor.setMode(MONITOR_MODE_DEMO);
     multiSensor.read();
     tN2kMsg message;
     multiSensor.fullStatusMessage(message);

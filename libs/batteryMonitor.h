@@ -2,7 +2,7 @@
 #ifndef __BATTERYMONITOR_H__
 #define __BATTERYMONITOR_H__
 
-#include "monitors.h"
+#include "configuration.h"
 
 #ifndef TEST
 #include <N2kMessages.h>
@@ -85,21 +85,25 @@ public:
         _temperatureADCPin = temperatureADCPin;
         _convertADCToC = convertADCToC;
         _zeroCOffset = zeroCOffset;
-        monitorMode = MONITOR_MODE_ENABLED;
+        monitorBatteries = false;
+        demoMode = false;
 
     }
+
+    void updateConfiguration(Configuration configuration) {
+        monitorBatteries = configuration.getFlag(CONFIG_FLAGS_BATTERIES_CONNECTED);
+        demoMode = configuration.getFlag(CONFIG_FLAGS_DEMO_ENABLED);
+    }
+
     void begin() {
         // perform any init required.
     }
-    void setMode(tMontorMode mode) {
-      monitorMode = mode;
-    }
 
-    bool isEnabled() {
-        return (monitorMode == MONITOR_MODE_ENABLED) || (monitorMode == MONITOR_MODE_DEMO);
-    }
-    void read() {
-      if(monitorMode == MONITOR_MODE_DEMO) {
+    bool read() {
+        if (!monitorBatteries) {
+            return false;
+        }
+      if(demoMode) {
         if ( _voltage == N2kDoubleNA ) {
             _voltage = 12.6;
             _current = 0.0;
@@ -108,7 +112,7 @@ public:
         _voltage = _voltage+0.001*((rand()%100)-50);
         _current = _current+0.001*((rand()%100)-50);
         _temperature = _temperature+0.001*((rand()%100)-50);
-      } else if ( monitorMode == MONITOR_MODE_ENABLED) {
+      } else {
         if ( _voltageADCPin != 0 ) {
             _voltage = _convertADCToVolts*analogRead(_voltageADCPin)-_zeroVOffset;
         } else {
@@ -135,6 +139,7 @@ public:
       LOGC(F(" A,"));
       LOGC(_temperature);
       LOGN(F(" C"));
+      return true;
     }
     void fillStatusMessage(tN2kMsg &N2kMsg) {
         SetN2kDCBatStatus(N2kMsg,
@@ -194,7 +199,8 @@ private:
     int _temperatureADCPin;
     double _convertADCToC; // 0V = 0C, 5V = 100C  
     double _zeroCOffset; //     
-    tMontorMode monitorMode;
+    bool monitorBatteries;
+    bool demoMode;
     
 };
 

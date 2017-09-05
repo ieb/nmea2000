@@ -1,0 +1,302 @@
+Surface speed and compass heading:
+$IIVHW,x .x,T,x.x,M,x.x,N,x.x,K*hh
+ I I I I I I I__I_Surface speed in kph
+ I I I I I__I_Surface speed in knots
+ I I I__I_Magnetic compass heading
+ I__I_True compass heading
+Total log and daily log:
+$IIVLW,x.x,N,x.x,N*hh
+ I I I__I_Daily log in miles
+ I__I_Total log in miles
+Depth:
+$IIDPT,x.x,x.x,,*hh
+ I I_Sensor offset, >0 = surface transducer distance, >0 = keel transducer distance.
+ I_Bottom transducer distance
+$IIDBT,x.x,f,x.x,M,,*hh
+ I I I__I_Depth in metres
+ I_ I_Depth in feet
+Water temperature:
+$IIMTW,x.x,C*hh
+ I__I_Temperature in degrees C
+Apparent wind angle and speed:
+$IIVWR,x.x,a,x.x,N,x.x,M,x.x,K*hh
+ I I I I I I I__I_Wind speed in kph
+ I I I I I__I_Wind speed in m/s
+ I I I__I_Wind speed in knots
+ I__I_Apparent wind angle from 0° to 180°, L=port, R=starboard
+True wind direction and speed:
+$IIMWD,x.x,T,x.x,M,x.x,N,x.x,M*hh
+ I I I I I I I__I_Wind speed in m/s
+ I I I I I__I_ Wind speed in knots
+ I I I__I_Wind direction from 0° to 359° magnetic
+ I__I_Wind direction from 0° to 359° true 
+- 5 -NMEA output interface user guide 183 33-60-357-001 REV1
+$IIVWT,x.x,a,x.x,N,x.x,M,x.x,K*hh
+ I I I I I I I__I_Wind speed in kph
+ I I I I I__I_Wind speed in m/s
+ I I I_ I_Wind speed in knots
+ I__I_True wind angle from 0° to 180° , L=port, R=starboard
+Air temperature:
+$IIMTA,x.x,C*hh
+ I__I_Temperature in degrees C
+Heading magnetic:
+$IIHDG,x.x,,,,*hh
+ I_Heading magnetic
+$IIHDM,x.x,M*hh
+ I__I_Heading magnetic
+Heading true:
+$IIHDT,x.x,T*hh
+ I__I_Heading true
+Barometer:
+$IIMMB,x.x,I,x.x,B*hh
+ I I I__I_Atmospheric pressure in bars
+ I_ I_Atmospheric pressure in inches of mercury
+Mast angle:
+$IIXDR,A,x.x,D,mastangle,*hh
+ I_Measurement of the mast angle in degrees
+UTC time and date:
+$IIZDA,hhmmss.ss,xx,xx,xxxx,,*hh
+ I I I I_Year
+ I I I_Month
+ I I_Day
+ I_Time
+Geographical position, latitude and longitude:
+$IIGLL,IIII.II,a,yyyyy.yy,a,hhmmss.ss,A,A*hh
+ I I I I I I_Statut, A= valid data, V= non valid data
+ I I I I I_UTC time
+ I I I___ I_Longitude, E/W
+ I__I_Latidude, N/S 
+- 6 -NMEA output interface user guide 183 33-60-357-001 REV1
+Bottom heading and speed:
+$IIVTG,x.x,T,x.x,M,x.x,N,x.x,K,A*hh
+ I I I I I I I__I_Bottom speed in kph
+ I I I I I__I_Bottom speed in knots
+ I I I__I_Magnetic bottom heading
+ I__ I_True bottom heading
+Cross-track error:
+$IIXTE,A,A,x.x,a,N,A*hh
+ I_Cross-track error in miles, L= left, R= right
+Heading and distance to waypoint:
+$IIRMB,A,x.x,a,,,IIII.II,a,yyyyy.yy,a,x.x,x.x,x.x,A,a*hh
+ I I I I I I I I I_Speed to WP in knots
+ I I I I I I I I_True heading to destination in degrees
+ I I I I I I I_Distance to destination in miles
+ I I I I I_ ___ I_Longitude of the WP to destination, E/W
+ I I I__ I_Latidude of the WP to destination, N/S
+ I I_Direction of cross-track error, L/R
+ I_Distance of cross-track error in miles
+Man over board:
+$TRWPL,,,,,MOB,*hh
+ I_Name of the WP
+$PMLR,05,01,02,037,*hh (this phrase launches the “MOB” procedure on compatible MLR GPS).
+ I I I I_Checksum
+ I I I_Data bytes (02= MOB key of the GPS)
+ I I_Number of data bytes (01 = only 1 data byte)
+ I_Type of phrase (05 = simulating key pressing on the keyboard) 
+
+
+
+
+KEP
+
+
+2 proprietary NMEA0183 sentences are available on the Topline red wire:
+Battery 1
+$PNKEP,11,xx.x,x.xx,xx.x,xx.x*hh
+          |    |    |    |_battery level %
+          |    |    |_used capacity
+          |    |_current
+          |_voltage
+Battery 2
+$PNKEP,12,xx.x,,,*hh
+          |_voltage 
+
+
+
+Sentence 1
+$PNKEP,01,x.x,N,x.x,K*hh
+ | STW target in knots
+| STW target in km/h
+$PNKEP,02,x.x*hh<CR><LF>
+           \ Course (COG) on other tack from 0 to 359°
+Sentence 3
+$PNKEP,03,x.x,x.x,x.x*hh
+| optimum angle from 0 to 359°
+ | VMG efficiency up/down wind in %
+| Polar efficiency in %
+Sentence 5
+Current direction and speed from the atlas
+$PNKEP,05,x.x,x.x,N,x.x,K*hh
+|Current direction from 0 to 359°
+ | Current speed in Knots
+ | Current speed in km/h
+
+$IIXDR,A,2.5,D,Heel Angle*hh  from http://www.cruisersforum.com/forums/f134/tactics-plugin-166909-20.html
+$PNKEP,06,0.979,0.022,0.1*hh
+
+Some documentation https://opencpn.org/wiki/dokuwiki/doku.php?id=opencpn:developer_manual:plugins:beta_plugins:tactics
+
+ $PNKEP,01 Target speed VIT_CIBLE.
+$PNKEP,02 Heading at next leg CAP_AUTRE_BORD.
+$PNKEP,03 Optimum upwind angle ANGLE_OPT_VENT, REND_PRES,
+REND_POLAIRE.
+$PNKEP,04 Angles to optimise the CMG and VMG and
+gain
+ANGLE_OPT_CMG, ANGLE_OPT_VMG,
+GAIN_ROUTE_CMG, GAIN_ROUTE_VMG.
+$PNKEP,05 Current direction and speed DIREC_COURANT, VITES_COURANT. 
+
+
+
+
+$IIXDR,P,1.02481,B,Barometer*0D
+$IIXDR,C,19.52,C,TempAir*3D
+$IIMTA,19.52,C*1E
+$IIMMB,30.3446,I,1.02481,B*65
+
+
+GPS
+$GPGGA GPS Fix Data 10 Hz
+$GPGSA GNSS DOP and Active Satellites 1 Hz
+$GPGSV GNSS Satellites in View 1 Hz
+$GPRMC Recommended Minimum Specific GNSS Data 20 Hz
+$GPVTG Course Over Ground and Ground Speed 1 Hz
+$IIXDR Internal temperature 1 Hz
+
+
+NMEA Outputs
+ NMEA sentence Description
+$INDBT … Depth below keel
+$INDPT … Depth below keel
+$INGGA … Global Positioning System Fix Data
+$INGLL … Geographic position
+$INHDG … Heading – Deviation and Variation
+$INHDT … True Heading
+$INMTW … Sea Temp
+$INMWV,x.x,R … Apparent Wind Angle and Speed
+$INMWV,x.x,T … True Wind Angle and Speed
+$INMWD … True Wind Direction and Speed
+$INRMB … Recommended Minimum Navigation
+$INRMC … Recommended Minimum GNSS Data
+$INRSA … Rudder angle
+$INVDR … Set and Drift
+$INVHW … Water Speed and Heading
+$INVLW … Dual Ground/Water Distance
+$INVPW … VMG
+$INVTG … Course/Speed Over Ground
+$INWCV … Waypoint closure velocity
+$INXDR …,C,x.x,C,AIRT … Air Temperature
+$INXDR …,P,x.x,B,BARO … Barometer
+$INXDR …,N,x.x,N,FRST … Forestay
+$INXDR …,A,x.x,D,ROLL … Heel angle
+$INIXDR ...,H,x.x,P,HYGR … Humidity
+$INXDR …,A,x.x,D,KEEL … Keel Angle
+$INXDR …,A,x.x,D,LEEW … Leeway angle
+$INXDR …,A,x.x,D,MAST … Mast angle
+$INXTE … Cross Track Error, measured
+$INZDA … UTC Time and Date 
+$IIXDR Batteries voltage 1 Hz
+
+
+http://www.catb.org/gpsd/NMEA.html#_xdr_transducer_measurement
+
+
+Race Processor HR NKE config file.
+
+[Language]
+Language = 0 ; Customs labels and proHR on gyrographic pages (on
+restart 0=French 1=English 2=Spanish 3=Italian)
+[Compute]
+BoatSpdLinHeel= N ; Uses the speed linearisation file according to heel
+angle
+TrueWindTable = N ; Uses the True Wind correction table (+ backprocessing
+AW)
+Performance = Y ; Processes performance data with the polar tables .
+Calculation is made with the polar table saved in the PROCESSOR (Speed.polar) and broadcast
+on the Topline bus. Should you not wish to broadcast the Performance channel of the Processor
+on the TOPLINE bus, set the value from Y to N.
+Variation =Y ; Processes the magnetic variation
+UseMechMastRot= Y ; Uses the mechanical mast sensor in priority
+HeelTackSelect= 3 ; Selection between 2 ultrasonic speed sensors on the
+Topline bus
+ ; 0= choice for tack with AWA +/-10 deg
+ ; a a 100
+[Datalog]
+ValidDatalog = Y ; Enables the datalogs save (Y or N)
+CompressDatalog = N ; Enables the gzip compression of data-logs (Y or N).
+Y for enabling and N for disabling. They are saved in the "Archive" folder. d’ battery capacity USB.
+HoursDL = 1 ; Time length of file (hours)
+[3Dhull] 3D Hull port settings. 255 = auto-detection of the source.
+3DH_Valid = Y ; Validate 3D Hull (X=North, Y=West, Z=Height)
+3DH_Instal = 255 ; Type and frame of the sensor
+ ; 7 = 3D Sensor (X' forward, Y' starboard, Z' down)
+ ; 10 = Regatta Compass
+ ; 11 = KVH Compass
+ ; 13 = 3D Fusion (X' forward, Y' starboard, Z' down)
+ ; 255 = AUTODETECT
+3DH_Baudrate = 4800 ; Baudrate of datas in NMEA0183 mode
+3DH_FusionMode= 0 ; 0 = 3D sensor mode (magnetic heading measurement)
+The heading is supplied by the 3D Fusion magnetometer.
+ ; 1 = 3D fusion GPS compass (fusion on true heading
+and SOG , COG and POSITION from gps)Heading and SOG are delivered by the compass
+GPS and corrected by the 3D fusion. COG and position are delivered directly by the compass
+GPS.
+ ; 2 = 3D fusion compass + raw GPS (fusion on true
+heading , COG/SOG and position from gps) Heading is delivered by the compass GPS
+and corrected by the 3D fusion. COG, SOG and position are delivered directly by the compass
+GPS.
+22 PROCESSOR_HR_um_UK_37
+3DH_GPS_X = 0 ; GPS antenna position in X from 3D unit See below for
+GPS/3D fusion antenna settings.
+3DH_GPS_Y = 0 ; GPS antenna position in Y from 3D unit
+3DH_GPS_Z = 0 ; GPS antenna position in Z from 3D unit
+3DH_GPS_BIAS = 0 ; GPS heading bias with 3D unit
+3DH_LogLevel = 0 ; Log level Data ( 0 = Mini, 3 = Max )Generates sailnet
+variables for 3D fusion debug.
+[NMEA1]NMEA1 port settings
+ValidNmeaIn = N ; Validates the main NMEA183 input
+ValidNmeaOut = N ; Validate the NMEA183 output
+NmeaBaudrate = 4800 ; Rate NMEA183IN&OUT(4800 or 38400)
+[NMEA2]NMEA2 port settings
+ValidNmea2In = N ; Validate the NMEA183 secondary input
+Nmea2Baudrate = 4800 ; Rate secondary NMEA183IN (4800 or 38400)
+[NMEAUdp]UDP port settings
+ValidUdpNmeaIn = N ; Validates NMEA183 on UDP/IP
+UdpNmeaInPort = 1001 ; UDP port for Nmea183 input on UDP/IP
+ValidUdpNmeaOut = N ; Validates NMEA183 output on IP
+UdpNmeaOutPort = 1000 ; Port UDP de la sortie Nmea183 sur IP
+UdpNmeaOutIP = 192.168.0.255 ; IP address for the destination PC
+(x.x.x.255 in broadcast mode)
+[PilotHR]Pilot HR settings
+ValidPilotHR = Y ; Validates the autopilot steering
+PilotKey = -1 ; Pilot HR licence key (decimal)Key to activate PILOT
+HR. The key is calculated from the serial number mentioned in the events log at the "Pilotkey
+(serial $xxxx)" line.
+RudderLimit = 30 ; Software rudder end (inside physical rudder
+ends)Indicates the lowest value from the 2 rudder ends. Used for automatic tacking and gybing.
+VitesseCoque = -1 ; Upwind target speed with 15 knots of wind Upwind
+boat speed when sailing with 15 knots wind speed on flat sea
+AsservSpeed = 3 ; 0-> low control 5 -> high control. Default = 3
+HardRudderLimit = 30 ; Physical rudder end when commissioning the
+autopilot (smallest value)
+PlanningRdrLimit= 30 ; Virtual rudder end when the boat is planning
+Maximum rudder angle you allow when the boat is planning.
+TablePilotHR = N ; Validate the use of the autopilot table
+ModeRafale = Y ; Validate the use of the Gust mode
+ModeSurf = Y ; Validate the use of the Surf mode
+Surf_Max_Val = 10 ; Maximum Offset for Surf mode Maximum Offset applied
+on Course To Steer in SURF mode.
+AutoDeadAngle = N ; Automatic switching of dead angle
+[SailNet]
+ValidSailNet = N ; Validate the SailNet interface
+SailNetOutIP = 192.168.0.233 ; IP address of recipient, 192.168.0.233
+= PC, 127.0.0.1=localHost
+SailNetOutPort = 4003 ; IP port for SailNet output
+SailNetInPort = 4004 ; IP port for SailNet Input
+[Anticapsize]
+ValidAcs = N ; Validate the anti-capsize (ACS)
+[Custom] 
+23 PROCESSOR_HR_um_UK_37
+LuaLauncher = N ; Validates the lua script management launch
+ComputeStat = N ; Validates the customized statistics process 
+

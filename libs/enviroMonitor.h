@@ -2,7 +2,7 @@
 #ifndef __ENVIROMONITOR_H__
 #define __ENVIROMONITOR_H__
 
-#include "monitors.h"
+#include "configuration.h"
 
 
 #ifndef TEST
@@ -30,7 +30,8 @@ public:
     EnviroMonitor() {
       _envSID = 0;
       enviroSesorEnabled = false;
-      monitorMode = MONITOR_MODE_ENABLED;
+      enviroEnabled = false; 
+      demoMode = false;
     }
     void begin() {
         //Serial.print("Checking Enviro sensor ");
@@ -45,25 +46,28 @@ public:
             LOG(F("Not Enabled Enviro Sensor"));
         }
     }
-    void setMode(tMontorMode mode) {
-      monitorMode = mode;
-      temperature = 22.2;
-      pressure = 997;
-    }
 
-    bool isEnabled() {
-        return (monitorMode == MONITOR_MODE_ENABLED) || (monitorMode == MONITOR_MODE_DEMO);
+    void updateConfiguration(Configuration configuration) {
+        enviroEnabled = configuration.getFlag(CONFIG_FLAGS_ENNVIRO_ENABLED);
+        demoMode = configuration.getFlag(CONFIG_FLAGS_DEMO_ENABLED);
+        if (demoMode) {
+          temperature = 22.2;
+          pressure = 997;          
+        }
     }
 
 
     bool read() {
-      if (monitorMode == MONITOR_MODE_DEMO) {
+      if (!enviroEnabled) {
+        return false;
+      }
+      if (demoMode) {
         LOGN(F("Enviro Read Demo"));
         temperature = min(max(0.0F, temperature+0.01F*((rand()%100)-50)),45.0F);
         pressure = min(max(999.0F, pressure+0.01F*((rand()%100)-50)),1030.0F);
         _envSID++;
         return true;
-      } else if (monitorMode == MONITOR_MODE_ENABLED ){
+      } else {
         if ( enviroSesorEnabled ) {
           sensors_event_t event;
           enviroSensor.getEvent(&event);
@@ -97,7 +101,8 @@ private:
     unsigned char _envSID;
     float temperature;
     float pressure;
-    tMontorMode monitorMode;
+    bool demoMode;
+    bool enviroEnabled;
 
 };
 

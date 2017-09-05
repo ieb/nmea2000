@@ -6,7 +6,6 @@
 #include <N2kMessages.h>
 #endif
 
-#include "monitors.h"
 #include "statistic.h"
 #include "motionSensor.h"
 #include "configuration.h"
@@ -85,16 +84,19 @@ public:
       if ( this->waterSpeedPin > 0 ) {
         attachInterrupt(digitalPinToInterrupt(this->waterSpeedPin),waterMonitorReadEvent,RISING);        
       }
-      monitorMode = MONITOR_MODE_ENABLED;
+      attidudeEnabled = false;
+      demoMode = false;
     }
 
-    void setMode(tMontorMode mode) {
-      monitorMode = mode;
-    }
 
 
     void updateConfiguration(Configuration configuration) {
         sensorsConnected = configuration.getFlag(CONFIG_FLAGS_SENSORS_ENABLED);
+        demoMode = configuration.getFlag(CONFIG_FLAGS_DEMO_ENABLED);
+        attidudeEnabled = configuration.getFlag(CONFIG_FLAGS_ATTITUDE_ENABLED);
+        if (sensorsConnected) {
+          attidudeEnabled = true;
+        }
         userCalWindSpeed = configuration.getConfig(CONFIG_WIND_SPEED_CAL);
         userCalWindOffset = DegToRad(configuration.getConfig(CONFIG_WIND_OFFSET_CAL));
         userCalWaterSpeed = configuration.getConfig(CONFIG_WATER_SPEED_CAL);
@@ -104,14 +106,11 @@ public:
         stwHzPerKn = configuration.getConfig(CONFIG_WATER_SPEED_HZ);
     }
 
-    bool isEnabled() {
-        return (monitorMode == MONITOR_MODE_ENABLED) || (monitorMode == MONITOR_MODE_DEMO);
-    }
 
     /**
      * Reads from the internal Stats
      */
-    void read() {
+    bool read() {
         // read the current value of the sensors.
         if (sensorsConnected) {
           readSensors();
@@ -125,7 +124,7 @@ public:
           statistics->leeway.update(leeway, tnow);
           statistics->pitch.update(pitch, tnow);
           statistics->roll.update(roll, tnow);
-        } else {
+        } else if ( attidudeEnabled ) {
           readAttitude();
           unsigned long tnow = millis();
           stw = statistics->stw.means(5, tnow);
@@ -139,6 +138,8 @@ public:
           measuredWindAngle = 0;
           measuredWindSpeed = 0;
           measuredWaterSpeed = 0;
+        } else {
+          return false;
         }
         sensorSID++;
         LOG(F("Multi Sensor measuredWindAngle:"));
@@ -164,6 +165,7 @@ public:
         LOGC(F(",  roll:"));
         LOGC(roll);
         LOGN(F(" "));
+        return true;
     }
 
 
@@ -208,8 +210,9 @@ public:
     uint8_t windSpeedPin;
     uint8_t waterSpeedPin;
     uint8_t sensorSID;
-    tMontorMode monitorMode;
     bool sensorsConnected;
+    bool attidudeEnabled;
+    bool demoMode;
 
     inline double knotsToms(double v) { return v*1852.0/3600.0; }
 
@@ -406,10 +409,10 @@ public:
 #define CONVERT_WIND_TO_SINCOS(x) (((double)x*0.00592749734822F)-4.0F)/2.0F
 
     void readSinCos() {
-      if (monitorMode == MONITOR_MODE_DEMO) {
+      if (demoMode) {
         measuredWindAngle = fixAngle(measuredWindAngle+0.001*((rand()%100)-50));
 
-      } else if (monitorMode == MONITOR_MODE_ENABLED ){
+      } else {
         if ( windSinAdc > 0 && windCosAdc > 0 ) {
           double sinWind = CONVERT_WIND_TO_SINCOS(analogRead(windSinAdc));
           double cosWind = CONVERT_WIND_TO_SINCOS(analogRead(windCosAdc));
@@ -421,9 +424,9 @@ public:
     }
 
     void readWindSpeed() {
-      if (monitorMode == MONITOR_MODE_DEMO) {
+      if (demoMode) {
         measuredWindSpeed = max(0.0F, measuredWindSpeed+0.01*((rand()%100)-50));
-      } else if (monitorMode == MONITOR_MODE_ENABLED ){
+      } else {
         LOGLN("Wind monitor is enabled.");
         if ( windSpeedPin > 0 && wind_period > 0) {
           // 1.045Hz per Kn of wind speed.
@@ -442,9 +445,9 @@ public:
     }
 
     void readWaterSpeed() {
-      if (monitorMode == MONITOR_MODE_DEMO) {
+      if (demoMode) {
         measuredWaterSpeed = max(0.0F, measuredWaterSpeed+0.01*((rand()%100)-50));
-      } else if (monitorMode == MONITOR_MODE_ENABLED ){
+      } else {
         if ( waterSpeedPin > 0 && water_period > 0) {
           // 5.5Hz per Kn of water speed.
           // water_period is the time in ms between pulses. 
@@ -462,12 +465,12 @@ public:
     }
 
     void readAttitude() {
-      if (monitorMode == MONITOR_MODE_DEMO) {
+      if (demoMode) {
         pitch = min(PI/4,max(-PI/4, pitch+(PI/1000)*((rand()%100)-50)));
         roll = min(PI/4,max(-PI/4, roll+(PI/1000)*((rand()%100)-50)));
         gyro_x = min(PI/8,max(-PI/8, gyro_x+(PI/1000)*((rand()%100)-50)));
         gyro_y = min(PI/8,max(-PI/8, gyro_y+(PI/1000)*((rand()%100)-50)));
-      } else if (monitorMode == MONITOR_MODE_ENABLED ){
+      } else {
         motionSensor->read();
         pitch = motionSensor->orientation.pitch;
         roll = motionSensor->orientation.roll;

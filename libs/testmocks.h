@@ -67,6 +67,8 @@ typedef struct _tN2kWindReference {
     double dummy;
 } tN2kWindReference;
 
+typedef char __FlashStringHelper;
+
 typedef struct {
     union {
         float v[3];

@@ -3,7 +3,7 @@
 #define __BOATMONITOR_H__
 
 #include "polar.h"
-#include "monitors.h"
+#include "configuration.h"
 
 
 #define PI (double)3.1415926535897932384626433832795
@@ -44,54 +44,53 @@ public:
         this->polarPerformance = polarPerformance;
         periods = windowS;
         sid = 0;
-        monitorMode = MONITOR_MODE_ENABLED;
+        performanceEnabled = false;
+        demoMode = false;
+    }
+
+    void updateConfiguration(Configuration configuration) {
+        performanceEnabled = configuration.getFlag(CONFIG_FLAGS_PERFORMANCE_ENABLED);
+        demoMode = configuration.getFlag(CONFIG_FLAGS_DEMO_ENABLED);
     }
 
 
-    void setMode(tMontorMode mode) {
-      monitorMode = mode;
-    }
 
-    bool isEnabled() {
-        return (monitorMode == MONITOR_MODE_ENABLED) || (monitorMode == MONITOR_MODE_DEMO);
-    }
-
-
-    void read(unsigned long tnow) {
-        if (monitorMode == MONITOR_MODE_DEMO || monitorMode == MONITOR_MODE_ENABLED) {
-            meanSTW = statistics->stw.means(periods, tnow);
-            stdevSTW = statistics->stw.stdevs(periods, tnow);
-            meanAWS = statistics->aws.means(periods, tnow);
-            stdevAWS = statistics->aws.stdevs(periods, tnow);
-            meanAWA = statistics->awa.means(periods, tnow);
-            stdevAWA = statistics->awa.stdevs(periods, tnow);
-            if (calcTrueWind) {
-                while ( meanAWA > PI ) meanAWA = meanAWA - PI;
-                while ( meanAWA < -PI) meanAWA = meanAWA + PI;
-                meanTWS = sqrt((meanSTW*meanSTW+meanAWS*meanAWS)-(2*meanSTW*meanAWS*cos(meanAWA)));
-                meanTWA = 0.0F;
-                if ( meanTWS > 1.0E-3F ) {
-                    meanTWA = (meanAWS*cos(meanAWA)-meanSTW)/meanTWS;
-                    if ( meanTWA > 0.9999F || meanTWA < -0.9999F) {
-                        meanTWA = 0.0F;
-                    } else {
-                        meanTWA = acos(meanTWA);
-                    }
-                }
-                if ( meanAWA < 0) {
-                    meanTWA = -meanTWA;
-                }
-            } else {
-                meanTWS = statistics->tws.means(periods, tnow);
-                stdevTWS = statistics->tws.stdevs(periods, tnow);
-                meanTWA = statistics->twa.means(periods, tnow);
-                stdevTWA = statistics->twa.stdevs(periods, tnow);            
-            }
-            targetSTW = knotsToms(polarPerformance->getBoatSpeed(msToKnots(meanTWS), RadToDeg(meanTWA)));
-            performance = knotsToms(polarPerformance->getBoatSpeedPerformance(msToKnots(meanTWS), RadToDeg(meanTWA), msToKnots(meanSTW)));
-            sid++;
-        }
-        LOG(F("Boat Monitor STW:"));
+    bool read(unsigned long tnow) {
+      if(!performanceEnabled) {
+        return false;
+      }
+      meanSTW = statistics->stw.means(periods, tnow);
+      stdevSTW = statistics->stw.stdevs(periods, tnow);
+      meanAWS = statistics->aws.means(periods, tnow);
+      stdevAWS = statistics->aws.stdevs(periods, tnow);
+      meanAWA = statistics->awa.means(periods, tnow);
+      stdevAWA = statistics->awa.stdevs(periods, tnow);
+      if (calcTrueWind) {
+          while ( meanAWA > PI ) meanAWA = meanAWA - PI;
+          while ( meanAWA < -PI) meanAWA = meanAWA + PI;
+          meanTWS = sqrt((meanSTW*meanSTW+meanAWS*meanAWS)-(2*meanSTW*meanAWS*cos(meanAWA)));
+          meanTWA = 0.0F;
+          if ( meanTWS > 1.0E-3F ) {
+              meanTWA = (meanAWS*cos(meanAWA)-meanSTW)/meanTWS;
+              if ( meanTWA > 0.9999F || meanTWA < -0.9999F) {
+                  meanTWA = 0.0F;
+              } else {
+                  meanTWA = acos(meanTWA);
+              }
+          }
+          if ( meanAWA < 0) {
+              meanTWA = -meanTWA;
+          }
+      } else {
+          meanTWS = statistics->tws.means(periods, tnow);
+          stdevTWS = statistics->tws.stdevs(periods, tnow);
+          meanTWA = statistics->twa.means(periods, tnow);
+          stdevTWA = statistics->twa.stdevs(periods, tnow);            
+      }
+      targetSTW = knotsToms(polarPerformance->getBoatSpeed(msToKnots(meanTWS), RadToDeg(meanTWA)));
+      performance = knotsToms(polarPerformance->getBoatSpeedPerformance(msToKnots(meanTWS), RadToDeg(meanTWA), msToKnots(meanSTW)));
+      sid++;
+      LOG(F("Boat Monitor STW:"));
       LOGC(msToKnots(meanSTW));
       LOGC(F(":"));
       LOGC(msToKnots(stdevSTW));
@@ -116,7 +115,7 @@ public:
       LOGC(F(" Kn, PTW:"));
       LOGC(msToKnots(performance));
       LOGN(F(" Kn"));
-
+      return true;
     }
 
 
@@ -155,12 +154,13 @@ private:
     double meanAWA;
     double stdevAWA;
     bool calcTrueWind;
+    bool performanceEnabled;
+    bool demoMode;
 
     int8_t periods;
     uint8_t sid;
     Polar_Performance *polarPerformance;
     Statistics *statistics;
-    tMontorMode monitorMode;
 
 
 };

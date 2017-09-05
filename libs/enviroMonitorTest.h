@@ -21,7 +21,6 @@ bool testEnviroMonitor() {
     enviroMonitor.read();
     tN2kMsg DummyMessage;
     enviroMonitor.fillStatusMessage(DummyMessage);
-    enviroMonitor.setMode(MONITOR_MODE_DEMO);
     enviroMonitor.read();
     enviroMonitor.fillStatusMessage(DummyMessage);
     return true;
