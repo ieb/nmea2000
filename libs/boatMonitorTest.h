@@ -19,7 +19,7 @@
 #include "pogo1250.h"
 
 bool testBoatMonitor() {
-    Polar_Performance polarPerf = Polar_Performance((char *)POGO1250_NAME, POGO1250_N_TWA, POGO1250_N_TWS, pogo1250Data_twa, pogo1250Data_tws, pogo1250Data_bsp);
+    Polar_Performance polarPerf = Polar_Performance((char *)POGO1250_NAME, POGO1250_N_TWA, POGO1250_N_TWS, (uint16_t *)pogo1250Data_twa, (uint16_t *)pogo1250Data_tws, (uint16_t *)pogo1250Data_bsp);
     Statistics statistics = Statistics();
     BoatMonitor boatMonitor = BoatMonitor(&polarPerf, &statistics);
     boatMonitor.read(millis());
@@ -27,9 +27,6 @@ bool testBoatMonitor() {
     tN2kMsg DummyMessage;
     boatMonitor.fillPolarPerformance(DummyMessage);
     boatMonitor.fillTargetBoatSpeed(DummyMessage);
-    boatMonitor.fillBoatSpeed(DummyMessage);
-    boatMonitor.fillAparentWind(DummyMessage);
-    boatMonitor.fillTrueWind(DummyMessage);
     return true;
 }
 

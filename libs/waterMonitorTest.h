@@ -9,6 +9,7 @@
 
 #include "testmocks.h"
 #include <math.h>
+#include "demo.h"
 #include "waterMonitor.h"
 
 
@@ -17,7 +18,8 @@
 // unit tests can be run on a desktop.
 
 bool testWaterMonitor() {
-    WaterMonitor waterMonitor = WaterMonitor(12);
+    demo_data_t demoData;
+    WaterMonitor waterMonitor = WaterMonitor(12, &demoData);
     waterMonitor.read();
     tN2kMsg DummyMessage;
     waterMonitor.fillWaterTemperature(DummyMessage);

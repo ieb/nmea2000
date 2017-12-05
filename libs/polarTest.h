@@ -25,40 +25,46 @@
 
 bool testPolarPerformance() {
     std::cout << "Testing Polar Performance " <<  std::endl;
-    Polar_Performance polarPerf = Polar_Performance((char *)POGO1250_NAME, POGO1250_N_TWA, POGO1250_N_TWS, pogo1250Data_twa, pogo1250Data_tws, pogo1250Data_bsp);
-    
+    Polar_Performance polarPerf = Polar_Performance((char *)POGO1250_NAME, POGO1250_N_TWA, POGO1250_N_TWS, (uint16_t *)pogo1250Data_twa, (uint16_t *)pogo1250Data_tws, (uint16_t *)pogo1250Data_bsp);
     if (!polarPerf.checkPolarData()) {
         std::cout << "FAIL: Expected data to be Ok, reported as not ok. "  <<  std::endl;
         return false;
     }
+    polarPerf.init();
 
-    std::cout << "TWA = [";
-    for(int twa = 0; twa < 1800; twa += 10) {
+    std::cout << "twa = [";
+    for(int twa = 0; twa < 180; twa += 5) {
         std::cout << twa << " "; 
     }
-    std::cout <<  "]" << std::endl;
-    std::cout << "TWS = [";
-        for ( int tws = 0; tws < 600; tws += 10 ) {
-        std::cout <<  "]" << tws << " "; 
+    std::cout <<  "];" << std::endl;
+    std::cout << "tws = [";
+    for ( int tws = 0; tws < 60; tws += 5 ) {
+        std::cout <<  " \"" << (1.0F*tws) << "\"; "; 
     }
-    std::cout <<  "]" << std::endl;
+    std::cout <<  "];" << std::endl;
 
-    std::cout << "BSP = [";
-    for(int twa = 0; twa < 1800; twa += 10) {
-        for ( int tws = 0; tws < 600; tws += 10 ) {
-            uint16_t polarBsp = polarPerf.getBoatSpeed(tws, twa);
+    std::cout <<  "twa = twa';" << std::endl;
+    std::cout <<  "twa = twa.*pi/180;" << std::endl;
+    std::cout <<  "twa = [twa; 2*pi.-flipud(twa)];" << std::endl;
+
+
+    std::cout << "stw = [";
+    for(int twa = 0; twa < 180; twa += 5) {
+        for ( int tws = 0; tws < 60; tws += 5 ) {
+            float polarBsp = polarPerf.getBoatSpeed(tws, twa);
             std::cout << polarBsp << " "  ;
         }
         std::cout << ";" << std::endl;
     }
-    for(int twa = 1790; twa >= 0; twa -= 10) {
-        for ( int tws = 0; tws < 600; tws += 10 ) {
-            uint16_t polarBsp = polarPerf.getBoatSpeed(tws, twa);
-            std::cout << polarBsp << " "  ;
-        }
-        std::cout << ";" << std::endl;
-    }
-    std::cout <<  "]" << std::endl;
+    std::cout <<  "];" << std::endl;
+
+    std::cout <<  "stw = [ stw; flipud(stw)];" << std::endl;
+    std::cout <<  "polar(twa,stw);" << std::endl;
+    std::cout <<  "legend(tws);" << std::endl;
+    std::cout <<  "set (gca, \"rtick\", 2.0:2.0:20, \"ttick\", 0:10:350);" << std::endl;
+    std::cout <<  "view(-90,90);" << std::endl;
+    std::cout <<  "title(\"Pogot 1250 polar\");" << std::endl;
+
 
     polarPerf.testInterpolate();
 

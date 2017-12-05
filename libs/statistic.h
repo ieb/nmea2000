@@ -58,7 +58,10 @@ class Statistic {
             int isnow = (tnow/1000) % 60;
             if ( isnow != islast ) {
                 // fill all buckets between islast and now with the value in islast.
+//                outputSeconds();
                 fill(islast, isnow, 60, seconds, seconds[islast]);
+//                outputSeconds();
+//                DEBUG(std::cout << islast << ":" << isnow << std::endl);
                 seconds[isnow] = v;
                 islast = isnow;
             } else {
@@ -71,6 +74,7 @@ class Statistic {
                 float cmean = mean(seconds, 60, 0, 60);
                 // minute went forwards compared to last time,
                 // get the mean and fill all betwene imnow and imlast
+
                 fill(imlast, imnow, 60, minutes, minutes[imlast]);
                 // might be more valid to interpolate between then and now.
                 minutes[imnow] = cmean;
@@ -101,7 +105,7 @@ class Statistic {
             if ( nminutes > 60) {
                 nminutes = 60;
             }
-            int ito = (tnow/1000) % 60;
+            int ito = (tnow/60000) % 60;
             int ifrom = ito - nminutes;
             if (ifrom < 0 ) {
                 ifrom = ifrom + 60;
@@ -132,7 +136,7 @@ class Statistic {
             if ( nminutes > 60) {
                 nminutes = 60;
             }
-            int ito = (tnow/1000) % 60;
+            int ito = (tnow/60000) % 60;
             int ifrom = ito - nminutes;
             if (ifrom < 0 ) {
                 ifrom = ifrom + 60;
@@ -153,14 +157,14 @@ class Statistic {
         float minutes[60];
         void fill(int s, int e, int size, float *values, float value) {
             if ( e > s ) {
-                for(int i = s; i < e-1; i++) {
+                for(int i = s; i < e; i++) {
                     values[i] = value;
                 }            
             } else {
                 for(int i = s; i < size; i++) {
                     values[i] = value;
                 }            
-                for(int i = 0; i < e-1; i++) {
+                for(int i = 0; i < e; i++) {
                     values[i] = value;
                 }            
             }
@@ -170,6 +174,7 @@ class Statistic {
         virtual float mean(float *values, int ntotal, int s, int e) {
             float m = 0;
             int i = s, n = 0;
+            DEBUG(std::cout << std::endl);
             while( n < ntotal) {
                 m = m + values[i];
                 n++;
@@ -183,8 +188,9 @@ class Statistic {
             if (n == 0) {
                 return 0;
             }
-            return m/n;
+            return (float)m/(float)n;
         }
+
 
 
         virtual float stdev(float *values, int ntotal, int s, int e) {
@@ -205,7 +211,7 @@ class Statistic {
             if (n == 0) {
                 return 0;
             }
-            return sqrt(m/n);
+            return sqrt(m/(float)n);
         }
         virtual float toOutput(float v) { return v;};
         virtual float fromInput(float v) { return v;};
@@ -239,10 +245,11 @@ class RadianStatistic : public Statistic {
             if (n == 0) {
                 return 0;
             }
-            return atan2(sv/n,cv/n);    
+            return atan2(sv/(float)n,cv/(float)n);    
         }
+
         virtual float stdev(float *values, int ntotal, int s, int e) {
-            float sv = 0, cv = 0;
+            float sv = 0, cv = 0, sva = 0, cva = 0, sa = 0, ca = 0;
             int i = s, n = 0;
             while( n < ntotal) {
                 sv = sv+sin(values[i]);
@@ -258,9 +265,17 @@ class RadianStatistic : public Statistic {
             if (n == 0) {
                 return 0;
             }
-            sv = sv/n;
-            cv = cv/n;
-            return sqrt(-log(sv*sv+cv*cv));    
+            sv = sv/(float)n;
+            cv = cv/(float)n;
+            // using the SciPy approach to circular variance.
+            float r = sv*sv+cv*sv;
+            if ( r < 1E-8 ) {
+                return 2.0F*PI;
+            } else if ( r > 1.0F) {
+                return 0;
+            } else {
+                return sqrt(-2.0F*log(r));
+            }
         }
 
 };
@@ -297,6 +312,8 @@ public:
         pitch  = RadianStatistic();
         roll = RadianStatistic();
         leeway  = RadianStatistic();
+        hdt   = RadianStatistic();
+        magneticVariation   = RadianStatistic();
     }
     RadianStatistic awa;
     Statistic aws;
@@ -306,6 +323,9 @@ public:
     RadianStatistic leeway;
     RadianStatistic pitch;
     RadianStatistic roll;
+    RadianStatistic hdt;
+    RadianStatistic magneticVariation;
+      
 };
 
 

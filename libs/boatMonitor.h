@@ -2,11 +2,11 @@
 #ifndef __BOATMONITOR_H__
 #define __BOATMONITOR_H__
 
+#include "conversions.h"
 #include "polar.h"
 #include "configuration.h"
 
 
-#define PI (double)3.1415926535897932384626433832795
 
 #ifndef TEST
 #include <N2kMessages.h>
@@ -26,9 +26,10 @@ typedef struct tN2kMsg_s {
 
 */
 #include "statistic.h"
-#define BoatMonitor_MESSAGES  127489L,  127488L, 130306L, 128259L, 130312L, 128267L
+#define BoatMonitor_MESSAGES  130312L, 127505L
 
-inline double knotsToms(double v) { return v*1852.0/3600.0; }
+
+
 
 
 class BoatMonitor {
@@ -36,10 +37,8 @@ class BoatMonitor {
 public:
     BoatMonitor(Polar_Performance *polarPerformance, 
         Statistics *statistics, 
-        bool calcTrueWind = true,
         int8_t windowS = 15 // the window to average over in s
         ) {
-        this->calcTrueWind = calcTrueWind;
         this->statistics = statistics;
         this->polarPerformance = polarPerformance;
         periods = windowS;
@@ -48,73 +47,104 @@ public:
         demoMode = false;
     }
 
-    void updateConfiguration(Configuration configuration) {
-        performanceEnabled = configuration.getFlag(CONFIG_FLAGS_PERFORMANCE_ENABLED);
-        demoMode = configuration.getFlag(CONFIG_FLAGS_DEMO_ENABLED);
+    bool init() {
+      return true;
     }
 
+    void updateConfiguration(Configuration *config) {
+      performanceEnabled = config->getPerformanceEnabled();
+      demoMode = config->getDemoMode();
+    }
+
+    void dumpRunstate() {
+      unsigned long tnow = millis();
+      float ctws = statistics->tws.means(periods, tnow);
+      float ctwa = statistics->twa.means(periods, tnow);
+      float cstw = statistics->stw.means(periods, tnow);
+      float magneticVariation = statistics->magneticVariation.means(periods, tnow);
+      float headingTrue = statistics->hdt.means(periods, tnow);
+      float leeway = statistics->leeway.means(periods, tnow);
+      performance_data_t pd;
+      polarPerformance->fillPerformanceData(ctws, ctwa, cstw, headingTrue, magneticVariation, leeway,  &pd);
+
+      DUMP(F("Boat Monitor STW:"));
+      DUMPC(msToKnots(cstw));
+      DUMPC(F(" Kn, TWS:"));
+      DUMPC(msToKnots(ctws));
+      DUMPC(F(" Kn, TWA:"));
+      DUMPC(RadToDeg(ctwa));
+      DUMPC(F(" deg, TTW:"));
+      DUMPC(msToKnots(pd.polarstw));
+      DUMPC(F(" Kn, PTW:"));
+      DUMPC(pd.polarstwRatio);
+      DUMPC(F(" %%, PVMG:"));
+      DUMPC(msToKnots(pd.polarvmg));
+      DUMPC(F(" Kn, VMG:"));
+      DUMPC(msToKnots(pd.vmg));
+      DUMPC(F(" Kn, VMGR:"));
+      DUMPC(pd.polarvmgRatio);
+      DUMPC(F(" %%, TVMG:"));
+      DUMPC(msToKnots(pd.targetvmg));
+      DUMPC(F(" Kn, TSTW:"));
+      DUMPC(msToKnots(pd.targetstw));
+      DUMPC(F(" Kn, TTWA:"));
+      DUMPC(RadToDeg(pd.targettwa));
+      DUMPC(F(" Deg, THAT:"));
+      DUMPC(RadToDeg(pd.tackHeadingTrue));
+      DUMPC(F(" Deg, TAHM:"));
+      DUMPC(RadToDeg(pd.tackHeadingMagnetic));
+      DUMPC(F(" Deg, TATT:"));
+      DUMPC(RadToDeg(pd.tackTrackTrue));
+      DUMPC(F(" Deg, TATM:"));
+      DUMPC(RadToDeg(pd.tackTrackMagnetic));
+      DUMPN(F(" Deg"));
+    }
 
 
     bool read(unsigned long tnow) {
       if(!performanceEnabled) {
         return false;
       }
-      meanSTW = statistics->stw.means(periods, tnow);
-      stdevSTW = statistics->stw.stdevs(periods, tnow);
-      meanAWS = statistics->aws.means(periods, tnow);
-      stdevAWS = statistics->aws.stdevs(periods, tnow);
-      meanAWA = statistics->awa.means(periods, tnow);
-      stdevAWA = statistics->awa.stdevs(periods, tnow);
-      if (calcTrueWind) {
-          while ( meanAWA > PI ) meanAWA = meanAWA - PI;
-          while ( meanAWA < -PI) meanAWA = meanAWA + PI;
-          meanTWS = sqrt((meanSTW*meanSTW+meanAWS*meanAWS)-(2*meanSTW*meanAWS*cos(meanAWA)));
-          meanTWA = 0.0F;
-          if ( meanTWS > 1.0E-3F ) {
-              meanTWA = (meanAWS*cos(meanAWA)-meanSTW)/meanTWS;
-              if ( meanTWA > 0.9999F || meanTWA < -0.9999F) {
-                  meanTWA = 0.0F;
-              } else {
-                  meanTWA = acos(meanTWA);
-              }
-          }
-          if ( meanAWA < 0) {
-              meanTWA = -meanTWA;
-          }
-      } else {
-          meanTWS = statistics->tws.means(periods, tnow);
-          stdevTWS = statistics->tws.stdevs(periods, tnow);
-          meanTWA = statistics->twa.means(periods, tnow);
-          stdevTWA = statistics->twa.stdevs(periods, tnow);            
-      }
-      targetSTW = knotsToms(polarPerformance->getBoatSpeed(msToKnots(meanTWS), RadToDeg(meanTWA)));
-      performance = knotsToms(polarPerformance->getBoatSpeedPerformance(msToKnots(meanTWS), RadToDeg(meanTWA), msToKnots(meanSTW)));
+      float ctws = statistics->tws.means(periods, tnow);
+      float ctwa = statistics->twa.means(periods, tnow);
+      float cstw = statistics->stw.means(periods, tnow);
+      float magneticVariation = statistics->magneticVariation.means(periods, tnow);
+      float headingTrue = statistics->hdt.means(periods, tnow);
+      float leeway = statistics->leeway.means(periods, tnow);
+      polarPerformance->fillPerformanceData(ctws, ctwa, cstw, headingTrue, magneticVariation, leeway,  &perfdata);
       sid++;
+
       LOG(F("Boat Monitor STW:"));
-      LOGC(msToKnots(meanSTW));
-      LOGC(F(":"));
-      LOGC(msToKnots(stdevSTW));
-      LOGC(F(" Kn, AWS:"));
-      LOGC(msToKnots(meanAWS));
-      LOGC(F(":"));
-      LOGC(msToKnots(stdevAWS));
-      LOGC(F(" Kn, AWA:"));
-      LOGC(RadToDeg(meanAWA));
-      LOGC(F(":"));
-      LOGC(RadToDeg(stdevAWA));
-      LOGC(F(" deg, TWS:"));
-      LOGC(msToKnots(meanTWS));
-      LOGC(F(":"));
-      LOGC(msToKnots(stdevTWS));
+      LOGC(msToKnots(cstw));
+      LOGC(F(" Kn, TWS:"));
+      LOGC(msToKnots(ctws));
       LOGC(F(" Kn, TWA:"));
-      LOGC(RadToDeg(meanTWA));
-      LOGC(F(":"));
-      LOGC(RadToDeg(stdevTWA));
+      LOGC(RadToDeg(ctwa));
       LOGC(F(" deg, TTW:"));
-      LOGC(msToKnots(targetSTW));
+      LOGC(msToKnots(perfdata.polarstw));
       LOGC(F(" Kn, PTW:"));
-      LOGC(msToKnots(performance));
-      LOGN(F(" Kn"));
+      LOGC(perfdata.polarstwRatio);
+      LOGC(F(" %%, PVMG:"));
+      LOGC(msToKnots(perfdata.polarvmg));
+      LOGC(F(" Kn, VMG:"));
+      LOGC(msToKnots(perfdata.vmg));
+      LOGC(F(" Kn, VMGR:"));
+      LOGC(perfdata.polarvmgRatio);
+      LOGC(F(" %%, TVMG:"));
+      LOGC(msToKnots(perfdata.targetvmg));
+      LOGC(F(" Kn, TSTW:"));
+      LOGC(msToKnots(perfdata.targetstw));
+      LOGC(F(" Kn, TTWA:"));
+      LOGC(RadToDeg(perfdata.targettwa));
+      LOGC(F(" Deg, THAT:"));
+      LOGC(RadToDeg(perfdata.tackHeadingTrue));
+      LOGC(F(" Deg, TAHM:"));
+      LOGC(RadToDeg(perfdata.tackHeadingMagnetic));
+      LOGC(F(" Deg, TATT:"));
+      LOGC(RadToDeg(perfdata.tackTrackTrue));
+      LOGC(F(" Deg, TATM:"));
+      LOGC(RadToDeg(perfdata.tackTrackMagnetic));
+      LOGN(F(" Deg"));
       return true;
     }
 
@@ -123,37 +153,63 @@ public:
 
     void fillPolarPerformance(tN2kMsg &N2kMsg) {      
         // Representing polar performance wth %LiveWell
-        SetN2kFluidLevel(N2kMsg, 1, N2kft_LiveWell, performance, 250);
+//        SetN2kFluidLevel(N2kMsg, 1, N2kft_Fuel, performance, 250);
     }
 
     void fillTargetBoatSpeed(tN2kMsg &N2kMsg) {
         // Representing Target boat speed with True/Theoretical WindChill
-        SetN2kTemperature(N2kMsg, sid, 1, N2kts_TheoreticalWindChillTemperature,
-                           CToKelvin(targetSTW)); // 
+//        SetN2kTemperature(N2kMsg, sid, 1, N2kts_TheoreticalWindChillTemperature,
+//                           CToKelvin(targetSTW)); // 
     }
-    void fillBoatSpeed(tN2kMsg &N2kMsg) {
-        SetN2kBoatSpeed(N2kMsg, sid, meanSTW); //
-    }
-    void fillAparentWind(tN2kMsg &N2kMsg) {
-        SetN2kWindSpeed(N2kMsg, sid, meanAWS, meanAWA, N2kWind_Apprent); //
-    }
-    void fillTrueWind(tN2kMsg &N2kMsg) {
-        SetN2kWindSpeed(N2kMsg, sid, meanTWS, meanTWA, N2kWind_True_boat);
-    }
+
+
+
+
+
+/*
+
+Speed PGN 128259
+          { path: 'performance.polarSpeed', value: polarPerformance.polarSpeed},   // polar speed at this twa
+speed target stw
+      { path: 'performance.velocityMadeGood', value: polarPerformance.vmg}, // current vmg at polar speed
+speed vmg
+
+      { path: 'performance.targetVelocityMadeGood', value: targets.vmg}, // target vmg -ve == downwind
+speed target vmg
+      { path: 'performance.targetSpeed', value: targets.stw}, // target speed on at best vmg and angle
+speed target for best vmg
+
+
+
+Heading PGN 127250
+      { path: 'performance.tackMagnetic', value: track.trackMagnetic}, // other track through water magnetic taking into account leeway 
+heading - other tack magnetic - with leeway
+
+      { path: 'performance.tackTrue', value: track.trackTrue}, // other track through water true taking into account leeway
+heading - other tack true - with leeway
+
+      { path: 'performance.headingMagnetic', value: track.headingMagnetic}, // other track heading on boat compass
+heading - otehr tack magnetic no leeway
+
+      { path: 'performance.headingTrue', value: track.headingTrue}, // other track heading true
+heading - other tack true no leeway 
+
+Wind PGN 130306
+      { path: 'performance.targetAngle', value: targets.twa}, // target twa on this track for best vmg
+wind angle, target for best vmg
+
+
+Levels 127505
+
+      { path: 'performance.polarVelocityMadeGoodRatio', value: polarPerformance.polarVmgRatio} // current vmg vs current polar vmg.
+ratio target vmg to vmg.
+      { path: 'performance.polarSpeedRatio', value: polarPerformance.polarSpeedRatio}, // polar speed ratio
+ratio speed to stw
+*/
+
+
 private:
-    double performance;
-    double targetSTW;
-    double meanSTW;
-    double stdevSTW;
-    double meanTWS;
-    double stdevTWS;
-    double meanTWA;
-    double stdevTWA;
-    double meanAWS;
-    double stdevAWS;
-    double meanAWA;
-    double stdevAWA;
-    bool calcTrueWind;
+    performance_data_t perfdata;
     bool performanceEnabled;
     bool demoMode;
 
@@ -161,6 +217,7 @@ private:
     uint8_t sid;
     Polar_Performance *polarPerformance;
     Statistics *statistics;
+
 
 
 };

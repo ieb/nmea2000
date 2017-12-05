@@ -11,8 +11,10 @@
 #define POGO1250_N_TWS 17
 #define POGO1250_N_TWA 24
 #define POGO1250_NAME "Pogo1250"
+// all numbers here are 10x
 const uint16_t PROGMEM pogo1250Data_tws[] = {0,40,60,80,100,120,140,160,200,250,300,350,400,450,500,550,600,POLAR_ENDMARK};
 const uint16_t PROGMEM pogo1250Data_twa[] = {0,50,100,150,200,250,320,360,400,450,520,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,POLAR_ENDMARK};
+// all numbers here are 100x.
 const uint16_t PROGMEM pogo1250Data_bsp[] = {
     0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
     0,40,60,80,90,100,100,100,110,110,110,110,10,10,10,0,0,

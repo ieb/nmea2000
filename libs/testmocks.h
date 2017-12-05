@@ -6,29 +6,47 @@
 #include <iostream>
 #define TRACE(x)
 #define DEBUG(x) x
-#define INFO(x) x
 #define ERROR(x) x
 #define F(x) x
-#define LOG(x) std::cout << "LOG:" << x
+#define LOG(x) std::cout << "L:" << x
 #define LOGC(x) std::cout << x 
 #define LOGN(x) std::cout << x << std::endl
-#define LOGLN(x) std::cout << "LOG:" << x << std::endl
+#define LOGLN(x) std::cout << "L:" << x << std::endl
 #define STATUS(x) std::cout << x;
+#define DUMP(x) std::cout << x
+#define DUMPC(x) std::cout << x 
+#define DUMPN(x) std::cout << x << std::endl
+#define DUMPLN(x) std::cout << x << std::endl
+#define INFO(x) std::cout << "I:" << x
+#define INFOC(x) std::cout << x 
+#define INFON(x) std::cout << x << std::endl
+#define INFOLN(x) std::cout << "I:" << x << std::endl
+
 
 #include <sys/time.h>
+#include <unistd.h>
 
 unsigned long ticks = 0;
 unsigned long millis() {
     ticks = ticks + rand();
     return ticks;
 }
+
+void delay(unsigned int x) {
+    std::cout << "-";
+    usleep(x*1000);
+    std::cout << "+";
+}
 #define max(x,y) fmax(x,y)
 #define min(x,y) fmin(x,y)
 #define analogRead(x)  512
+#define analogReadResolution(x) std::cout << "Analog read resolution set" << std::endl
+
 #define N2kDoubleNA -1.0F
 #define digitalPinToInterrupt(x) x
 #define analogRead(x)  512
 #define attachInterrupt(x,y,z) std::cout << "Called Attach Interrupt" << std::endl
+#define detachInterrupt(x) std::cout << "Called Detach Interrupt" << std::endl
 #define  SetN2kWindSpeed(N2kMsg, sensorSID, aws, awa, type ) std::cout << "Called SetN2kWindSpeed" << std::endl
 #define SetN2kTemperature(a,b,c,d,e) std::cout << "Called SetN2kTemperature" << std::endl
 #define SetN2kOutsideEnvironmentalParameters(a,b,c,d,e)  std::cout << "Called SetN2kOutsideEnvironmentalParameters" << std::endl
@@ -37,7 +55,6 @@ unsigned long millis() {
 #define SetN2kDCBatStatus(a,b,c,d,e,f)  std::cout << "Called SetN2kDCBatStatus" << std::endl
 #define SetN2kDCStatus(a,b,c,d,e,f,g,h) std::cout << "Called SetN2kDCStatus" << std::endl
 #define SetN2kBatConf(a,b,c,d,e,f,g,h,i,j) std::cout << "Called SetN2kBatConf" << std::endl
-    
 
 
 #define N2kts_SeaTemperature 1
@@ -126,6 +143,14 @@ typedef struct
     };
 } sensors_event_t;
 
+
+typedef struct  {
+    int32_t dynamic_ram;
+    int32_t static_ram;
+    int32_t stack_used;
+    int32_t free;
+} meminfo_t;
+
 enum tN2kBatNomVolt {
                             N2kDCbnv_6v=0,
                             N2kDCbnv_12v=1,
@@ -188,20 +213,22 @@ public:
         return -1;
     }
     void print(std::string x) {
-
+        std::cout << x;
     }
     void println(std::string x) {
-
+        std::cout << x << std::endl;
     }
     void print(double x) {
+        std::cout << x;
 
     }
     void println(double x) {
-
+        std::cout << x << std::endl;
     }
     int available() {
         return 0;
     }
+
 };
 
 
@@ -233,9 +260,27 @@ public:
 };
 
 
+class Adafruit_BNO055 {
+public:
+    Adafruit_BNO055(int n) {
+
+    }
+
+    void setExtCrystalUse(bool use) {
+
+    }
+    bool begin() {
+        return true;
+    }
+    bool getEvent(sensors_event_t *e) {
+       return true; 
+    }
+};
+
 
 Stream LogS;
 Stream * LogStream = &LogS;
+
 
 class DueFlashStorage {
 public:
@@ -246,6 +291,39 @@ public:
         return b;
     }
 };
+
+class File: public Stream {
+public:
+    operator bool() { return true; }
+    void close() {};
+
+};
+
+#define FILE_WRITE 1
+
+class SDClass {
+public:
+    bool begin(int csPin) {
+        return true;
+    }
+    File open(char* name, int access) {
+        return File();
+    }
+    File open(char* name) {
+        return File();
+    }
+};
+
+SDClass SD;
+
+
+int freeMemory(meminfo_t *info) {
+    info->dynamic_ram = 20000;
+    info->static_ram = 20000;
+    info->stack_used = 10;
+    info->free = 20000;
+    return info->free;
+}
 
 // end test mocks ----------------------------------------------
 

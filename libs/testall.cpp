@@ -10,23 +10,31 @@
 #ifdef TEST
 
 #include "eventsTest.h"
-#include "enviroMonitorTest.h"
+#include "anglesensorTest.h"
+#include "pulsesensorTest.h"
 #include "multiSensorTest.h"
 #include "polarTest.h"
 #include "statisticTest.h"
 #include "waterMonitorTest.h"
 #include "boatMonitorTest.h"
-#include "batteryMonitorTest.h"
 
 
 
-
-bool batteryMonitorTest() {
-    if (testBatteryMonitor()) {
+bool pulseSensorTest() {
+    if (testPulseSensor() ) {
         return true;
     }
     return false;
 }
+
+bool angleSensorTest() {
+    if ( testAngleSensor() ) {
+        return true;
+    }
+    return false;
+}
+
+
 
 bool boatMonitorTest() {
     if (testBoatMonitor()) {
@@ -94,13 +102,21 @@ int main() {
     } else {
         std::cout << "Testing testEvents Passed" << std::endl;
     }
-    std::cout << "Testing testEnviroMonitor" << std::endl;
-    if (! testEnviroMonitor() ) {
-        std::cout << "Testing testEnviroMonitor Failed !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << std::endl;
+    std::cout << "Testing testPulseSensor" << std::endl;
+    if (! testPulseSensor() ) {
+        std::cout << "Testing testPulseSensor Failed !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << std::endl;
         failed++;
         return failed;
     } else {
-        std::cout << "Testing testEnviroMonitor Passed" << std::endl;
+        std::cout << "Testing testPulseSensor Passed" << std::endl;
+    }
+    std::cout << "Testing testAngleSensor" << std::endl;
+    if (! testAngleSensor() ) {
+        std::cout << "Testing testAngleSensor Failed !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << std::endl;
+        failed++;
+        return failed;
+    } else {
+        std::cout << "Testing testAngleSensor Passed" << std::endl;
     }
     std::cout << "Testing testMultiSensorMonitor" << std::endl;
     if (! testMultiSensorMonitor() ) {
@@ -134,15 +150,6 @@ int main() {
     } else {
         std::cout << "Testing BoatMonitor Passed" << std::endl;
     }
-    std::cout << "Testing testing BatteryMonitor" << std::endl;
-    if (! testBatteryMonitor() ) {
-        std::cout << "Testing BatteryMonitor Failed !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! " << std::endl;
-        failed++;
-        return failed;
-    } else {
-        std::cout << "Testing BatteryMonitor Passed" << std::endl;
-    }
-    return 0;
 }
 #endif
 

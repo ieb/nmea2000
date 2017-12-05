@@ -12,16 +12,21 @@
 #define WaterMonitor_MESSAGES  130312L
 
 
-class WaterMonitor {
+class WaterMonitor  {
 public:
 
 
 
-    WaterMonitor(uint8_t _waterTempADC) {
+    WaterMonitor(uint8_t _waterTempADC, demo_data_t *demoData) {
       _waterTempADC = _waterTempADC;
       sid = 0;
       sensorsConnected = false;
       demoMode = false;
+      this->demoData = demoData;
+    }
+
+    bool init() {
+      return true;
     }
 
     /**
@@ -37,7 +42,7 @@ public:
         return false;
       }
       if (demoMode) {
-        waterTemperature = max(0.0F, waterTemperature+0.01*((rand()%100)-50));
+        waterTemperature = demoData->waterTemperature;
       } else {
         waterTemperature = CONVERT_TO_TEMPERATURE(analogRead(_waterTempADC));
       }
@@ -57,11 +62,21 @@ public:
         return false;
     }
 
-    void updateConfiguration(Configuration configuration) {
-        sensorsConnected = configuration.getFlag(CONFIG_FLAGS_SENSORS_ENABLED);
-        demoMode = configuration.getFlag(CONFIG_FLAGS_DEMO_ENABLED);
+
+
+
+    void updateConfiguration(Configuration *config) {
+      sensorsConnected = config->getSensorsEnabled();
+      demoMode = config->getDemoMode();
     }
 
+
+    void dumpRunstate() {
+      DUMP(F("Water Temperature "));
+      DUMPC(waterTemperature);
+      DUMPN(F(" C"));
+
+    }
 
   private:
     double waterTemperature; // in C
@@ -69,6 +84,7 @@ public:
     uint8_t sid;
     bool sensorsConnected;
     bool demoMode;
+    demo_data_t *demoData;
 
 
 

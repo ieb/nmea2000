@@ -54,6 +54,51 @@ float Statistic::getMinute(int n) {
 
 }
 
+
+bool testLinearStatisticsFill(void) {
+    std::cout << "new Statistic" << std::endl;
+    Statistic linear = Statistic();
+    std::cout << "Start Loading " << std::endl;    
+    unsigned long tnow = 3050;
+    for ( unsigned long i = 0; i < 20; i++) {
+        tnow = tnow + 2040;
+        linear.update(12.2F,tnow);
+    }
+    // end will be 10400000
+    linear.outputSeconds();
+    linear.outputMinutes();
+    float mean30s = linear.means(10,tnow);
+    float stdev30s = linear.stdevs(10, tnow);
+    if ( fabs(mean30s-12.2F) > 1E-4  ) {
+        std::cout << " Test failed, mean 30s  not 12.2 "  << (mean30s-12.2F) <<  std::endl;
+        return false;
+    }
+    if ( stdev30s != 0.0F ) {
+        std::cout << " Test failed, stdev 30s  not 0"  <<  stdev30s << std::endl;
+        return false;
+    }
+    for ( unsigned long i = 0; i < 120; i++) {
+        tnow = tnow + 2040;
+        linear.update(12.2F,tnow);
+    }
+    linear.outputMinutes();
+    float mean1m = linear.meanm(2,tnow);
+    float stdev1m = linear.stdevm(2,tnow);
+    if ( fabs(mean1m-12.2F) > 1E-4  ) {
+        std::cout << " Test failed, mean 2m  not 12.2 "  <<  (mean1m-12.2F) << std::endl;
+        return false;
+    }
+    if ( stdev1m != 0.0F) {
+        std::cout << " Test failed, mean 2m  not 12.2 "  <<  std::endl;
+        return false;
+    }
+
+    std::cout << " Done test " << std::endl;
+    return true;
+
+}
+
+
 bool testLinearStatistics(void) {
     std::cout << "new Statistic" << std::endl;
     Statistic linear = Statistic();
@@ -61,9 +106,10 @@ bool testLinearStatistics(void) {
     unsigned long tnow = 10;
     for ( unsigned long i = 0; i < 100000; i++) {
         tnow = tnow + 104;
-        float value = (rand() % 1000)/100;
+        float value = (float)(rand() % 1000)/100.0F;
         linear.update(value,tnow);
     }
+    // end will be 10400000
     linear.outputSeconds();
     linear.outputMinutes();
     std::cout << "30s" << linear.means(30,tnow) << " " << linear.stdevs(30, tnow) <<  std::endl;
@@ -72,8 +118,8 @@ bool testLinearStatistics(void) {
     std::cout << "15m" << linear.meanm(15, tnow) << " " << linear.stdevm(15, tnow) <<  std::endl;
     float mean30s = linear.means(30,tnow);
     float stdev30s = linear.stdevs(30, tnow);
-    if ( fabs(mean30s - 4.5F ) > 0.45F ) {
-        std::cout << " Test failed, mean 30s not within expected bounds of no more than 0.45 from 4.5: "  <<  std::endl;
+    if ( fabs(mean30s - 5.0F ) > 0.45F ) {
+        std::cout << " Test failed, mean 30s not within expected bounds of no more than 0.45 from 5.0: "  <<  std::endl;
         return false;
 
     }

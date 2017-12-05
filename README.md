@@ -206,3 +206,162 @@ It is possible to power the Pi from the ArduinoDue over USB and visa versa. The 
 
 
 
+# Update - September 2017
+
+Sending data to influxDB on a standard SignalK setup swamps InfluxDB making it unusable, probably as a result of the frequency of packets > 1s in some cases, and the way the standard signalk-to-influxDB plugin is written. New signalk-telemetry plugin dixes this sending data in one block, queued to be more effcient at a fixed rate.
+
+It may be possible to run everything from the Pi using socketCan rather than using a Due. This needs MCP2515 trancevers, 12C for the 10Dof sensor. In addition 1Wire temperature sensors and a I2C RTC can be added. Potentially this reduces power consumption as 80mA isnt needed to power the Due any more. the Pi has no A2D so a SPI based chip would need to be used.
+
+The Pi supports 2x CAN trancevers with SocketCAN.
+
+
+Raspberry Pi 10Dof
+
+The npm module https://www.npmjs.com/package/nodeimu works for several 10DOf sensors on i2C, setup only requires i2c is enabled.
+The IMU Requires configuration see https://github.com/RTIMULib/RTIMULib2 which also requires Octave to be installed for full calibration.
+
+dtparam=i2c_arm=on
+
+Raspberry Pi RTC
+Disconnected from ntp the Pi will not keep time, using a ds3231 over i2c gives acurate time once setup.
+
+dtoverlay=i2c-rtc,ds3231
+see http://raspmer.blogspot.co.uk/2015/07/how-to-use-ds3231-i2c-real-time-clock.html
+
+
+
+
+Raspberry Pi 1 Wire
+
+DS18B20 are 1 wire temperature sensors. To read on a Pi enable 1wire and connedt with a 4K7 pullup to 3.3v, where the 1 wire is the default pin 7 
+
+Output is at cat  /sys/bus/w1/devices/<ID>/w1_slave.
+Map the ID to the sensor by warming each sensor in turn.
+
+https://www.npmjs.com/package/ds18b20 for NPM
+
+
+
+Raspberry Pi CanBus
+
+Investigating how to run over SocketCan
+
+2x MCP2515 drivers with Trancevers from eBay, MUST be connected with 3.3V to 5V level shifters to avoid GPIO damage as the trancevers will run at 5V. 2 can be connected to get CAN0 and CAN1
+
+Wiring 
+
+    2 5V   --------------- Vdd
+    1 3V3   ------> LS 3V3
+    2 5V ---------> LS 5V
+    9 GND --------> LS GND
+    9 GND  --------------  GND
+    19 MOSI ---->  LS ----> SI0 & SI1
+    21 MOSO <----  LS <---- SO0 & SO1
+    23 SCLK ------> LS ----> SCLK0 & SCLK1
+    24 CE0 ------> LS ----> CS0
+    26 CE1 ------> LS ----> CS1
+    18 GPIO24 <--  LS <---- INT0
+    22 xGPIO25 <--  LS <---- INT1
+
+    dtoverlay mcp2515-can0  oscillator=8000000 interrupt=24
+    dtoverlay mcp2515-can1  oscillator=8000000 interrupt=25
+
+    root@raspb:~/can-utils# dmesg | egrep "spi|can"
+    [  477.594591] mcp251x spi0.0 can0: MCP2515 successfully initialized.
+    [  487.165293] mcp251x spi0.1 can1: MCP2515 successfully initialized.
+    [  495.704786] can: controller area network core (rev 20120528 abi 9)
+    root@raspb:~/can-utils# ifconfig can0
+    can0: flags=128<NOARP>  mtu 16
+            unspec 00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00  txqueuelen 10  (UNSPEC)
+            RX packets 0  bytes 0 (0.0 B)
+            RX errors 0  dropped 0  overruns 0  frame 0
+            TX packets 0  bytes 0 (0.0 B)
+            TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+    root@raspb:~/can-utils# ifconfig can1
+    can1: flags=128<NOARP>  mtu 16
+            unspec 00-00-00-00-00-00-00-00-00-00-00-00-00-00-00-00  txqueuelen 10  (UNSPEC)
+            RX packets 0  bytes 0 (0.0 B)
+            RX errors 0  dropped 0  overruns 0  frame 0
+            TX packets 0  bytes 0 (0.0 B)
+            TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+    root@raspb:~/can-utils# 
+
+
+Install can-utils from source.
+
+    # git clone https://github.com/linux-can/can-utils.git
+    # cd can-utils
+    # ./autogen.sh
+    # ./configure
+    # make
+    # sudo make install
+
+If initialisation reports a wiring problem, then there almost cerainly is a wiring problem.
+
+Configure interface
+
+
+    root@raspb:~/can-utils# ip link set can0 up type can bitrate 250000
+    root@raspb:~/can-utils#  ip link set can1 up type can bitrate 250000
+
+Test
+
+    root@raspb:~/can-utils# ./candump can1 &
+    [1]+ ./candump can1 &
+    root@raspb:~/can-utils# ./cansend can0 001#1122334455667788
+      can1  001   [8]  11 22 33 44 55 66 77 88
+    root@raspb:~/can-utils# ./cansend can0 001#1122334455667788
+      can1  001   [8]  11 22 33 44 55 66 77 88
+    root@raspb:~/can-utils# ./cansend can0 001#1122334455667788
+      can1  001   [8]  11 22 33 44 55 66 77 88
+    root@raspb:~/can-utils# 
+
+
+
+
+
+To echo all CAN1 traffic to CAN0, setup CAN1 to listen only, and setup CAN0 to have loopback enabled to anything reading CAN0 gets the CAN0 messages as well.
+
+
+    root@raspb:~/can-utils# ip link set can0 up type can bitrate 250000 loopback on
+    root@raspb:~/can-utils#  ip link set can1 up type can bitrate 250000 listen-only on
+
+Then to bridge
+
+    candump can1 -B can0
+
+For can0 -> SK
+
+see https://github.com/chacal/signalk-socketcan-device
+
+Input is candump can0 pipe, output is signalk-socketcan-device.
+
+    "pipedProviders": [{
+      "id": "can0",
+      "pipeElements": [
+        {
+          "type": "providers/execute",
+          "options": {
+            "command": "candump can0 | candump2analyzer | analyzer -json -si -nv"
+          }
+        },
+        {
+          "type": "providers/liner"
+        },
+        {
+          "type": "providers/from_json"
+        },
+        {
+          "type": "signalk-socketcan-device",
+          "options": {
+            "n2kAddress": 110,
+            "canDevice": "can0"
+          }
+        },
+        {
+          "type": "providers/n2k-signalk"
+        }
+      ]
+    }]
