@@ -132,7 +132,7 @@ void displaySensorOffsets(const adafruit_bno055_offsets_t &calibData)
 
 
 bool saveSensorCalibration(long id, adafruit_bno055_offsets_t *calibrationData, char*configFileName) {
-    if (!SD.begin(4)) {
+    if (!SD.begin(7)) {
       Serial.println(F("Initialization from SD Card failed, reverting to factory settings."));
       return false;
     }
@@ -180,7 +180,7 @@ bool saveSensorCalibration(long id, adafruit_bno055_offsets_t *calibrationData, 
 #define Del 0x7F
 
 bool loadSensorCalibraton(long id, adafruit_bno055_offsets_t *calibrationData, char*configFileName) {
-    if (!SD.begin(4)) {
+    if (!SD.begin(7)) {
       Serial.println(F("Initialization from SD Card failed, reverting to factory settings."));
       return false;
     }

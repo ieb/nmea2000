@@ -24,11 +24,13 @@
 volatile unsigned long wind_period = 0;
 volatile unsigned long wind_edges = 0;
 void windPulseHandler() {
-  static unsigned long period_millis = 0;
-  static unsigned long last_period_millis = 0;
-  last_period_millis = period_millis;
-  period_millis = millis();
-  wind_period = period_millis - last_period_millis;
+  static unsigned long wind_period_micros = 0;
+  static unsigned long wind_last_period_micros = 0;
+  wind_last_period_micros = wind_period_micros;
+  wind_period_micros = micros();
+  if ( wind_period_micros > wind_last_period_micros ) {
+    wind_period = wind_period_micros - wind_last_period_micros;
+  }
   wind_edges++;
 }
 
@@ -41,11 +43,13 @@ void readWindMonitor(unsigned long *data) {
 volatile unsigned long water_period = 0;
 volatile unsigned long water_edges = 0;
 void waterPulseHandler() {
-  static unsigned long period_millis = 0;
-  static unsigned long last_period_millis = 0;
-  last_period_millis = period_millis;
-  period_millis = millis();
-  water_period = period_millis - last_period_millis;
+  static unsigned long water_period_micros = 0;
+  static unsigned long water_last_period_micros = 0;
+  water_last_period_micros = water_period_micros;
+  water_period_micros = micros();
+  if ( water_period_micros > water_last_period_micros ) {
+    water_period = water_period_micros - water_last_period_micros;
+  }
   water_edges++;
 }
 
@@ -100,7 +104,7 @@ public:
       this->windAngleSensor->setDamping(config->getWindAngleDamping());
       this->windAngleSensor->calibrate(config->getWindAngleMin(),config->getWindAngleMax(),config->getWindAngleOffset());
       this->windSpeedSensor->calibrate(config->getWindSpeedFrequencies(),config->getWindSpeedPulsePerM(),config->getWindSpeedCalibrations());
-      this->waterSpeedSensor->calibrate(config->getWindSpeedFrequencies(),config->getWindSpeedPulsePerM(),config->getWaterSpeedCalibrations());       
+      this->waterSpeedSensor->calibrate(config->getWaterSpeedFrequencies(),config->getWaterSpeedPulsePerM(),config->getWaterSpeedCalibrations());       
     }
 
     void dumpRunstate() {
@@ -132,6 +136,10 @@ public:
         DUMPC(RadToDeg(averageroll));
         DUMPC(F(",leeway,"));
         DUMPN(RadToDeg(leeway));
+        this->windSpeedSensor->dumpstate("Wind Speed:");
+        this->waterSpeedSensor->dumpstate("Water Speed:");
+        this->windAngleSensor->dumpstate("Wind Angle");
+ 
     }
 
 
@@ -267,19 +275,19 @@ public:
       this->statistics->stw.update(stw,this->tnow);
       this->statistics->leeway.update(leeway,this->tnow);
       sid++;
-      LOG(F("p,"));
+      LOG(F("MiltiSendor pitch,"));
       LOGC(RadToDeg(pitch));
-      LOGC(F(",r,"));
+      LOGC(F(",roll,"));
       LOGC(RadToDeg(roll));
-      LOGC(F(",gp,"));
+      LOGC(F(",gyroP,"));
       LOGC(RadToDeg(gpitch));
-      LOGC(F(",gr,"));
+      LOGC(F(",gyroR,"));
       LOGC(RadToDeg(groll));
-      LOGC(F(",mhs,"));
+      LOGC(F(",mastHeadWindSpeed,"));
       LOGC(msToKnots(mastHeadWindSpeed));
-      LOGC(F(",mha,"));
+      LOGC(F(",mastHeadWindAngle,"));
       LOGC(RadToDeg(mastHeadWindAngle));
-      LOGC(F(",mws,"));
+      LOGC(F(",measuredWaterSpeed,"));
       LOGC(msToKnots(measuredWaterSpeed));
       LOGC(F(",awa,"));
       LOGC(RadToDeg(awa));
@@ -301,10 +309,10 @@ public:
         SetN2kBoatSpeed(N2kMsg, sid, stw); //
     }
     void fillAparentWind(tN2kMsg &N2kMsg) {
-        SetN2kWindSpeed(N2kMsg, sid, aws, awa, N2kWind_Apprent); //
+        SetN2kWindSpeed(N2kMsg, sid, aws, fixAnglePositive(awa), N2kWind_Apprent); //
     }
     void fillTrueWind(tN2kMsg &N2kMsg) {
-        SetN2kWindSpeed(N2kMsg, sid, tws, twa, N2kWind_True_boat);
+        SetN2kWindSpeed(N2kMsg, sid, tws, fixAnglePositive(twa), N2kWind_True_boat);
     }
 
     // Leeway

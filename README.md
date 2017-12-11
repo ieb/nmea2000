@@ -336,6 +336,30 @@ For can0 -> SK
 
 see https://github.com/chacal/signalk-socketcan-device
 
+
+
+------------------------------------------------------
+
+Moved back to the Due for now as its single threaded and doesnt stop expecially with no memory allocation. Processing power is a lot less, but it does a lot less also, not having an OS. 84MHz is plenty for this usage.
+
+Todo:
+Test polar calcs - partially done.
+Test Can0 - done
+Test IMU and calibrate - done.
+Test Cos and Sin - done
+Test Pulse counters  - done
+Test SD card
+Test 1 Wire
+Test wind and speed calcs
+Test linear voltage regulator vs noise from dc-dc converter 
+   Linear voltage is no nose, but too hot
+   LTSpice model indicates a 10uF cap will eliminate ripple from buck converter.
+
+
+
+
+
+
 Input is candump can0 pipe, output is signalk-socketcan-device.
 
     "pipedProviders": [{

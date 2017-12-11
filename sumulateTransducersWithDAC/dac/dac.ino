@@ -16,7 +16,7 @@
 #define AWS_PIN 4
 #define STW_PIN 5
 #define DAC_REGISTER 0x40
-#define DACV 3.3F/4096.0F
+#define DACV 3F/4096.0F
 #define WINDANGLE_UPDATE_PERIOD 500
 #define SPEED_UPDATE_PERIOD 500
 
@@ -117,10 +117,18 @@ void setWindAngle() {
   }
   lastAWA = awa;
 
-  float cosADC = 2048.0F+2048.0F*cos(awa*M_PI/180.0F);
-  float sinADC = 2048.0F+2048.0F*sin(awa*M_PI/180.0F);
+  float cosADC = 2000.0F+1500.0F*cos(awa*M_PI/180.0F);
+  float sinADC = 2000.0F+1500.0F*sin(awa*M_PI/180.0F);
 
   // sin MCP4725 on I2C at 0x62
+  Serial.print("V0 ");
+  Serial.print(cosADC);
+  Serial.print(" ");
+  Serial.print((float)cosADC*3.42F/4096.0F);
+  Serial.print(" V1 ");
+  Serial.print(sinADC);
+  Serial.print(" ");
+  Serial.println((float)sinADC*3.42F/4096.0F);
   setVoltage(0x62,cosADC);
   // cos MCP4725 on I2C at 0x62
   setVoltage(0x63,sinADC);    

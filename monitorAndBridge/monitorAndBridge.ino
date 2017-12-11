@@ -28,9 +28,13 @@ Stream *DataStream = &SerialUSB;
 #define INFON(x) if (Serial) { LogStream->println(x); }
 #define INFON2(x,m) if (Serial) { LogStream->println(x,m); }
 
+// CS for the SD Card
+#define SDCARD_CS 7
+
 #include <configuration.h>
 
 demo_data_t demoData;
+
 
 Configuration configuration = Configuration(LogStream, &demoData);
 
@@ -57,15 +61,16 @@ Configuration configuration = Configuration(LogStream, &demoData);
 
 
 // 2 PINS required for wind direction
-#define WIND_SIN_ADC 1
-#define WIND_COS_ADC 2
+#define WIND_SIN_ADC A0
+#define WIND_COS_ADC A1
 // 1 PIN required for water temp
-#define WATER_TEMP_ADC 3
+#define WATER_TEMP_ADC A2
 
 // Pulses from the Wind Speed (Check)
-#define WIND_SPEED_PIN 11
+#define WIND_SPEED_PIN 5
 // Pulses from the Wind Speed (Check)
-#define WATER_SPEED_PIN 12
+#define WATER_SPEED_PIN 6
+
 
 
 
@@ -170,6 +175,7 @@ void setup() {
   Serial.begin(115200);
   
   SerialUSB.begin(115200);
+
 
   populateEventQueue();
   configuration.init();
@@ -368,8 +374,8 @@ The loop calls ticktock() which processes the queue.
 #define PolarUpdatePeriod 5000
 
 
-#define MULTISENSOR_READ_PERIOD 1000
-#define MULTISENSOR_CALC_PERIOD 2000
+#define MULTISENSOR_READ_PERIOD 200
+#define MULTISENSOR_CALC_PERIOD 500
 
 // Sense at 10Hz
 unsigned long RunMultiSensor(unsigned long now) {

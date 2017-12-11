@@ -77,6 +77,7 @@ const char CFG_IMU_CAL_ENABLE[] PROGMEM = {"imu.cal.enable"};
 const char CFG_IMU_CAL_DISABLE[] PROGMEM = {"imu.cal.disable"};
 
 
+#ifdef CONFIG_DEMOMODE
 const char TESTPATTERN[] PROGMEM = {
   "log.disable\n" 
   "status.disable\n" 
@@ -89,8 +90,8 @@ const char TESTPATTERN[] PROGMEM = {
   "demo.roll,12.1\n" 
   "demo.gyro.pitch,0.1\n" 
   "demo.gyro.roll,0.2\n" 
-  "wind.sin.range,0,4001\n" 
-  "wind.cos.range,0,4002\n" 
+  "wind.sin.range,1295,3924\n"
+  "wind.cos.range,1295,3924\n"
   "wind.angle.offset,0\n" 
   "wind.angle.damping,1\n" 
   "wind.speed.damping,2\n" 
@@ -114,7 +115,40 @@ const char TESTPATTERN[] PROGMEM = {
   "imu.cal.enable\n"
   "status\n"
 };
+#else
 
+const char TESTPATTERN[] PROGMEM = {
+  "log.disable\n" 
+  "status.disable\n" 
+  "demo.disable\n" 
+  "wind.sin.range,1295,3924\n"
+  "wind.cos.range,1295,3924\n"
+  "wind.angle.offset,0\n" 
+  "wind.angle.damping,1\n" 
+  "wind.speed.damping,2\n" 
+  "water.speed.damping,3\n" 
+  "water.reset\n" 
+  "water.speed.calibration,0,5.5\n" 
+  "water.speed.calibration,10,5.4\n" 
+  "water.speed.calibration,20,5.3\n" 
+  "water.speed.calibration,30,5.1\n" 
+  "wind.reset\n" 
+  "wind.speed.calibration,0,1.5\n" 
+  "wind.speed.calibration,10,1.4\n" 
+  "wind.speed.calibration,20,1.3\n" 
+  "wind.speed.calibration,30,1.2\n" 
+  "boat.mastheight,17.5\n" 
+  "boat.kfactor,12.3\n" 
+  "imu.accel.offset,65532,0,35\n"
+  "imu.gyro.offset,65535,65534,0\n"
+  "imu.mag.offset,338,65211,126\n"
+  "imu.radius,1000,778\n"
+  "imu.cal.enable\n"
+  "load.config\n"
+  "status\n"
+  "runstate\n"
+};
+#endif
 
 
 #define CONFIG_NO_ACTION 0
@@ -207,7 +241,7 @@ public:
 
   File *openPolar() {
     if ( strlen(config.polarFile) > 0 ) {
-      if (!SD.begin(4)) {
+      if (!SD.begin(SDCARD_CS)) {
         INFOLN(F("Initialization from SD Card failed, reverting to factory settings."));
         return 0;
       }
@@ -585,7 +619,7 @@ private:
   }
 
   bool saveToFile(char *configFileName) {
-    if (!SD.begin(4)) {
+    if (!SD.begin(SDCARD_CS)) {
       INFOLN(F("Initialization from SD Card failed, reverting to factory settings."));
       return false;
     }
@@ -993,7 +1027,7 @@ private:
 
 
   bool loadFromFile(char *configFileName) {
-    if (!SD.begin(4)) {
+    if (!SD.begin(SDCARD_CS)) {
       INFOLN(F("Initialization from SD Card failed, reverting to factory settings."));
       return false;
     }

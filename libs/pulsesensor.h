@@ -50,7 +50,11 @@ public:
     ncalibrationPoints = ncal>10?10:ncal;
     for ( int i = 0; i < ncalibrationPoints; i++) {
       frequencyCalibration[i] = frequencyCalibrationPoint[i];
-      pulsesPerMCalibration[i] = pulsesPerMCalibrationPoint[i];       
+      pulsesPerMCalibration[i] = pulsesPerMCalibrationPoint[i];   
+      INFO("Calibration: F,PPKn, ");    
+      INFOC(frequencyCalibration[i]);    
+      INFOC(",");    
+      INFOLN(hzPerMPerSToHzPerKn(pulsesPerMCalibration[i]));    
     }
   }
 
@@ -107,6 +111,26 @@ public:
       speedVariance = frequencyVariance/pulsesPerMeter;
       distance = distance + (pulse_diff/pulsesPerMeter);
     }
+  }
+
+  void dumpstate(char * id) {
+    INFO(id);
+    INFOC(",demo,");
+    INFOC(demoMode);
+    INFOC(",pulsePeriod,");
+    INFOC(averagePulsePeriod);
+    INFOC(",frequency,");
+    INFOC(frequency);
+    INFOC(",ppm,");
+    INFOC(pulsesPerMeter);
+    INFOC(",ppk,");
+    INFOC(hzPerMPerSToHzPerKn(pulsesPerMeter));
+    INFOC(",speed,");
+    INFOC(msToKnots(speed));
+    INFOC(",distanceM,");
+    INFO(distance);
+    INFOC(",distanceK,");
+    INFON(metersToNMiles(distance));
   }
   double getTripDistance() {
     return distance;

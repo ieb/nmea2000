@@ -31,6 +31,7 @@ LIBS:valves
 LIBS:UltrasoundDriver-cache
 LIBS:instruments
 LIBS:customparts
+LIBS:DueBridge-cache
 EELAYER 25 0
 EELAYER END
 $Descr A4 11693 8268
@@ -341,7 +342,7 @@ L R R7
 U 1 1 5A0DF449
 P 3800 6650
 F 0 "R7" V 3880 6650 40  0000 C CNN
-F 1 "2K2" V 3807 6651 40  0000 C CNN
+F 1 "22R" V 3807 6651 40  0000 C CNN
 F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM7mm" V 3730 6650 30  0001 C CNN
 F 3 "" H 3800 6650 30  0000 C CNN
 	1    3800 6650
@@ -352,7 +353,7 @@ L R R8
 U 1 1 5A0DF498
 P 3800 7150
 F 0 "R8" V 3880 7150 40  0000 C CNN
-F 1 "2K2" V 3807 7151 40  0000 C CNN
+F 1 "22R" V 3807 7151 40  0000 C CNN
 F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM7mm" V 3730 7150 30  0001 C CNN
 F 3 "" H 3800 7150 30  0000 C CNN
 	1    3800 7150
@@ -389,17 +390,6 @@ F 3 "" H 1600 5650 30  0000 C CNN
 	-1   0    0    1   
 $EndComp
 $Comp
-L ZENER D2
-U 1 1 5A0E00C3
-P 1800 5700
-F 0 "D2" H 1800 5800 50  0000 C CNN
-F 1 "3v3 Zener" H 1800 5600 40  0000 C CNN
-F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM7mm" H 1800 5700 60  0001 C CNN
-F 3 "" H 1800 5700 60  0000 C CNN
-	1    1800 5700
-	0    -1   -1   0   
-$EndComp
-$Comp
 L GND #PWR012
 U 1 1 5A0E01A2
 P 1600 6000
@@ -408,17 +398,6 @@ F 1 "GND" H 1600 5930 30  0001 C CNN
 F 2 "" H 1600 6000 60  0001 C CNN
 F 3 "" H 1600 6000 60  0001 C CNN
 	1    1600 6000
-	1    0    0    -1  
-$EndComp
-$Comp
-L GND #PWR013
-U 1 1 5A0E01DA
-P 1800 6000
-F 0 "#PWR013" H 1800 6000 30  0001 C CNN
-F 1 "GND" H 1800 5930 30  0001 C CNN
-F 2 "" H 1800 6000 60  0001 C CNN
-F 3 "" H 1800 6000 60  0001 C CNN
-	1    1800 6000
 	1    0    0    -1  
 $EndComp
 Text GLabel 1550 4600 0    60   Input ~ 0
@@ -446,17 +425,6 @@ F 3 "" H 2500 5650 30  0000 C CNN
 	-1   0    0    1   
 $EndComp
 $Comp
-L ZENER D3
-U 1 1 5A0E03D2
-P 2700 5700
-F 0 "D3" H 2700 5800 50  0000 C CNN
-F 1 "Zener 3v3" H 2700 5600 40  0000 C CNN
-F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM7mm" H 2700 5700 60  0001 C CNN
-F 3 "" H 2700 5700 60  0000 C CNN
-	1    2700 5700
-	0    -1   -1   0   
-$EndComp
-$Comp
 L GND #PWR014
 U 1 1 5A0E03DB
 P 2500 6000
@@ -465,17 +433,6 @@ F 1 "GND" H 2500 5930 30  0001 C CNN
 F 2 "" H 2500 6000 60  0001 C CNN
 F 3 "" H 2500 6000 60  0001 C CNN
 	1    2500 6000
-	1    0    0    -1  
-$EndComp
-$Comp
-L GND #PWR015
-U 1 1 5A0E03E1
-P 2700 6000
-F 0 "#PWR015" H 2700 6000 30  0001 C CNN
-F 1 "GND" H 2700 5930 30  0001 C CNN
-F 2 "" H 2700 6000 60  0001 C CNN
-F 3 "" H 2700 6000 60  0001 C CNN
-	1    2700 6000
 	1    0    0    -1  
 $EndComp
 Text GLabel 2450 4600 0    60   Input ~ 0
@@ -527,17 +484,6 @@ Text GLabel 1500 3350 0    60   Input ~ 0
 TEMPS
 Text GLabel 2900 3000 0    60   Input ~ 0
 TEMPS
-$Comp
-L ZENER D1
-U 1 1 5A0E1FF8
-P 1750 3650
-F 0 "D1" H 1750 3750 50  0000 C CNN
-F 1 "3v3 Zener" H 1750 3550 40  0000 C CNN
-F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM7mm" H 1750 3650 60  0001 C CNN
-F 3 "" H 1750 3650 60  0000 C CNN
-	1    1750 3650
-	0    -1   -1   0   
-$EndComp
 $Comp
 L GND #PWR017
 U 1 1 5A0E20E2
@@ -811,7 +757,7 @@ L R R11
 U 1 1 5A149F0B
 P 3800 6450
 F 0 "R11" V 3880 6450 40  0000 C CNN
-F 1 "2K2" V 3807 6451 40  0000 C CNN
+F 1 "470R" V 3807 6451 40  0000 C CNN
 F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM7mm" V 3730 6450 30  0001 C CNN
 F 3 "" H 3800 6450 30  0000 C CNN
 	1    3800 6450
@@ -822,7 +768,7 @@ L R R12
 U 1 1 5A14A067
 P 3800 6950
 F 0 "R12" V 3880 6950 40  0000 C CNN
-F 1 "2K2" V 3807 6951 40  0000 C CNN
+F 1 "470R" V 3807 6951 40  0000 C CNN
 F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM7mm" V 3730 6950 30  0001 C CNN
 F 3 "" H 3800 6950 30  0000 C CNN
 	1    3800 6950
@@ -977,12 +923,10 @@ Wire Wire Line
 Wire Wire Line
 	1600 5250 1600 5400
 Wire Wire Line
-	1800 5500 1800 5350
+	1800 5350 1800 5600
 Wire Wire Line
 	1600 5350 1850 5350
 Connection ~ 1600 5350
-Wire Wire Line
-	1800 5900 1800 6000
 Wire Wire Line
 	1600 5900 1600 6000
 Wire Wire Line
@@ -992,12 +936,10 @@ Wire Wire Line
 Wire Wire Line
 	2500 5250 2500 5400
 Wire Wire Line
-	2700 5500 2700 5350
+	2700 5350 2700 5600
 Wire Wire Line
 	2500 5350 2800 5350
 Connection ~ 2500 5350
-Wire Wire Line
-	2700 5900 2700 6000
 Wire Wire Line
 	2500 5900 2500 6000
 Wire Wire Line
@@ -1023,14 +965,10 @@ Wire Wire Line
 Wire Wire Line
 	1600 4000 1600 3900
 Wire Wire Line
-	1500 3350 1750 3350
+	1500 3350 1850 3350
 Connection ~ 1600 3350
 Wire Wire Line
 	2900 3000 3200 3000
-Wire Wire Line
-	1750 3350 1750 3450
-Wire Wire Line
-	1750 3850 1750 4000
 Wire Wire Line
 	6150 2800 5950 2800
 Wire Wire Line
@@ -1201,9 +1139,9 @@ Wire Wire Line
 Wire Wire Line
 	6000 5000 6000 5050
 Wire Wire Line
-	6650 4900 6050 4900
+	6050 4900 6650 4900
 Wire Wire Line
-	6650 4800 6050 4800
+	6050 4800 6650 4800
 $Comp
 L R R13
 U 1 1 5A16BEA3
@@ -1265,4 +1203,101 @@ Wire Wire Line
 	4050 5000 3850 5000
 Wire Wire Line
 	4050 4900 3850 4900
+$Comp
+L DIODESCH D?
+U 1 1 5A2ABF2F
+P 2050 3350
+F 0 "D?" H 2050 3450 40  0000 C CNN
+F 1 "1N5818" H 2050 3250 40  0000 C CNN
+F 2 "" H 2050 3350 60  0000 C CNN
+F 3 "" H 2050 3350 60  0000 C CNN
+	1    2050 3350
+	1    0    0    -1  
+$EndComp
+$Comp
+L R R?
+U 1 1 5A2AC170
+P 950 5650
+F 0 "R?" V 1030 5650 40  0000 C CNN
+F 1 "10K" V 957 5651 40  0000 C CNN
+F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM7mm" V 880 5650 30  0001 C CNN
+F 3 "" H 950 5650 30  0000 C CNN
+	1    950  5650
+	-1   0    0    1   
+$EndComp
+$Comp
+L R R?
+U 1 1 5A2AC206
+P 950 5050
+F 0 "R?" V 1030 5050 40  0000 C CNN
+F 1 "100R" V 957 5051 40  0000 C CNN
+F 2 "Resistors_ThroughHole:Resistor_Horizontal_RM7mm" V 880 5050 30  0001 C CNN
+F 3 "" H 950 5050 30  0000 C CNN
+	1    950  5050
+	-1   0    0    1   
+$EndComp
+Text GLabel 800  4750 0    60   UnSpc ~ 0
+3v3
+Text GLabel 800  5350 0    60   UnSpc ~ 0
+3v3Clamp
+$Comp
+L GND #PWR?
+U 1 1 5A2AC461
+P 950 6000
+F 0 "#PWR?" H 950 6000 30  0001 C CNN
+F 1 "GND" H 950 5930 30  0001 C CNN
+F 2 "" H 950 6000 60  0001 C CNN
+F 3 "" H 950 6000 60  0001 C CNN
+	1    950  6000
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	950  6000 950  5900
+Wire Wire Line
+	950  5300 950  5400
+Wire Wire Line
+	800  5350 950  5350
+Connection ~ 950  5350
+Wire Wire Line
+	800  4750 950  4750
+Wire Wire Line
+	950  4750 950  4800
+Text GLabel 2350 3350 2    60   UnSpc ~ 0
+3v3Clamp
+Wire Wire Line
+	2250 3350 2350 3350
+$Comp
+L DIODESCH D?
+U 1 1 5A2AD0D8
+P 1800 5800
+F 0 "D?" H 1800 5900 40  0000 C CNN
+F 1 "1N5818" H 1800 5700 40  0000 C CNN
+F 2 "" H 1800 5800 60  0000 C CNN
+F 3 "" H 1800 5800 60  0000 C CNN
+	1    1800 5800
+	0    1    1    0   
+$EndComp
+$Comp
+L DIODESCH D?
+U 1 1 5A2AD18B
+P 2700 5800
+F 0 "D?" H 2700 5900 40  0000 C CNN
+F 1 "1N5818" H 2700 5700 40  0000 C CNN
+F 2 "" H 2700 5800 60  0000 C CNN
+F 3 "" H 2700 5800 60  0000 C CNN
+	1    2700 5800
+	0    1    1    0   
+$EndComp
+Text GLabel 1900 6150 2    60   UnSpc ~ 0
+3v3Clamp
+Text GLabel 2850 6150 2    60   UnSpc ~ 0
+3v3Clamp
+Wire Wire Line
+	2700 6000 2700 6150
+Wire Wire Line
+	2700 6150 2850 6150
+Wire Wire Line
+	1900 6150 1800 6150
+Wire Wire Line
+	1800 6150 1800 6000
 $EndSCHEMATC

@@ -58,6 +58,8 @@ public:
 
     void dumpRunstate() {
       unsigned long tnow = millis();
+      float caws = statistics->aws.means(periods, tnow);
+      float cawa = statistics->awa.means(periods, tnow);
       float ctws = statistics->tws.means(periods, tnow);
       float ctwa = statistics->twa.means(periods, tnow);
       float cstw = statistics->stw.means(periods, tnow);
@@ -69,7 +71,11 @@ public:
 
       DUMP(F("Boat Monitor STW:"));
       DUMPC(msToKnots(cstw));
-      DUMPC(F(" Kn, TWS:"));
+      DUMPC(F(" Kn, AWS:"));
+      DUMPC(msToKnots(caws));
+      DUMPC(F(" Kn, AWA:"));
+      DUMPC(RadToDeg(cawa));
+      DUMPC(F(" deg, TWS:"));
       DUMPC(msToKnots(ctws));
       DUMPC(F(" Kn, TWA:"));
       DUMPC(RadToDeg(ctwa));

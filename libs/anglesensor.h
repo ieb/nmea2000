@@ -99,17 +99,52 @@ public:
       }      
     } else {
       for (int i = 0; i < 2; i++) {
-        int v = analogRead(pin[i]);
+        double arv = analogRead(pin[i]);
+        rawv[i] = arv;
         if (autoConfig) {
-          maxv[i] = v>maxv[i]?v:maxv[i];
-          minv[i] = v<minv[i]?v:minv[i];
+          maxv[i] = arv>maxv[i]?arv:maxv[i];
+          minv[i] = arv<minv[i]?arv:minv[i];
         } else {
-          v = v>maxv[i]?maxv[i]:v;
-          v = v<minv[i]?minv[i]:v;
+          arv = rawv[i]>maxv[i]?maxv[i]:arv;
+          arv = arv<minv[i]?minv[i]:arv;
         }
-        vmean[i] = vmean[i] + (v - vmean[i])/this->nsamples;
+        vmean[i] = vmean[i] + (arv - vmean[i])/this->nsamples;
       }      
     }
+  }
+
+  void dumpstate(char *id) {
+    double angles[2];
+    for (int i = 0; i < 2; i++ ) {
+      if (range[i] < 1.0E-8) {
+        angles[i] = 0.0F;
+      } else {
+        angles[i] = (vmean[i]-mean[i])/range[i];
+      }
+      INFO(id);
+      INFOC(F(",demo,"));
+      INFOC(demoMode);
+      INFOC(F(",ch,"));
+      INFOC(i);
+      INFOC(F(",pin,"));
+      INFOC(pin[i]);
+      INFOC(F(",mean,"));
+      INFOC(mean[i]);
+      INFOC(F(",range,"));
+      INFOC(range[i]);
+      INFOC(F(",rawv,"));
+      INFOC(rawv[i]);
+      INFOC(F(",vmean,"));
+      INFOC(vmean[i]);
+      INFOC(F(",angle,"));
+      INFON(angles[i]);
+    }
+    double wa = atan2(angles[0], angles[1]);
+    INFO(id);
+    INFOC(F(",angleRad,"));
+    INFOC(wa);
+    INFOC(F(",angleDeg,"));
+    INFON(RadToDeg(wa));
   }
   double getAngle() {
     return this->offset+calc(0);
@@ -119,7 +154,7 @@ public:
   }
 
 private:
-  int pin[2], maxv[2], minv[2], vmean[2], nsamples;
+  int pin[2], maxv[2], minv[2], vmean[2], rawv[2], nsamples;
   double range[2], mean[2], offset;
   bool autoConfig;
   demo_data_t *demoData;
